@@ -7,17 +7,12 @@ import {
   Modal,
   ScrollView,
   Alert,
+  TextInput,
 } from "react-native";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
-import {
-  FormControllerProps,
-  DynamicFormHanldeSubmitParamType,
-  StepsType,
-} from "../../types";
+import { FormControllerProps, StepsType } from "../../types";
 import { Ionicons } from "@expo/vector-icons";
-import NormalHandler from "../handlers/NormalHandler";
-import StepsHandler from "../handlers/StepsHandler";
 
 type SubFormControllerProps = {
   field: {
@@ -41,6 +36,10 @@ type SubFormControllerProps = {
   form: UseFormReturn<z.TypeOf<any>, any, undefined>;
 };
 
+/**
+ * SubFormController - Integrated with parent form
+ * This component handles nested form data that is stored within the parent form structure
+ */
 const SubFormController = ({
   controller,
   field,
@@ -110,7 +109,7 @@ const SubFormController = ({
           const fixedItems = field.value.map((item) => flattenStructure(item));
           setItems(fixedItems);
         }
-        // Handle object data (for single items when addMoreVisible is false)
+        // Handle object data
         else if (
           typeof field.value === "object" &&
           field.value !== null &&
@@ -237,7 +236,6 @@ const SubFormController = ({
       controller.subform?.formtype === "normal" &&
       controller.subform.controllers
     ) {
-      // Clear any existing values for controllers
       controller.subform.controllers.forEach((ctrl) => {
         if (ctrl.name) {
           form.setValue(ctrl.name, ctrl.defaultValue || "", {
@@ -249,7 +247,6 @@ const SubFormController = ({
       controller.subform?.formtype === "steper" &&
       controller.subform.steps
     ) {
-      // Clear values for all step controllers
       controller.subform.steps.forEach((step) => {
         step.controllers.forEach((ctrl) => {
           if (ctrl.name) {
@@ -275,7 +272,6 @@ const SubFormController = ({
       controller.subform?.formtype === "normal" &&
       controller.subform.controllers
     ) {
-      // Set all values from the item
       controller.subform.controllers.forEach((ctrl) => {
         if (ctrl.name && itemToEdit) {
           // Handle nested properties using path notation (e.g., "venue.name")
@@ -306,7 +302,6 @@ const SubFormController = ({
       controller.subform?.formtype === "steper" &&
       controller.subform.steps
     ) {
-      // Set values for all controllers in all steps
       controller.subform.steps.forEach((step) => {
         step.controllers.forEach((ctrl) => {
           if (ctrl.name && itemToEdit) {
@@ -423,16 +418,13 @@ const SubFormController = ({
     if (controller.name === "ticketTiers" && allowMultipleItems) {
       const formValues: { [key: string]: any } = {};
 
-      // Get all controller names
       const controllerNames =
         controller.subform?.controllers?.map((ctrl) => ctrl.name) || [];
 
-      // Check if all fields start with 'ticket.'
       const allFieldsStartWithTicket =
         controllerNames.length > 0 &&
         controllerNames.every((name) => name && name.startsWith("ticket."));
 
-      // Collect form values but skip the 'ticket.' prefix to flatten the structure
       if (allFieldsStartWithTicket) {
         controller.subform?.controllers?.forEach((ctrl) => {
           if (ctrl.name && ctrl.name.startsWith("ticket.")) {
@@ -509,7 +501,7 @@ const SubFormController = ({
   };
 
   const handleSubmitSubForm = (values: any) => {
-    // Skip validation if validation fails
+    // Skip if validation fails
     if (!validateSubForm(values)) {
       return;
     }
@@ -554,40 +546,78 @@ const SubFormController = ({
     }
   };
 
-  // Render the SubForm content based on formtype
-  const renderSubForm = () => {
+  // Get controllers from either steps or direct controllers
+  const getControllers = () => {
+    if (controller.subform?.formtype === "steper" && controller.subform.steps) {
+      return controller.subform.steps.flatMap((step) => step.controllers || []);
+    }
+    return controller.subform?.controllers || [];
+  };
+
+  // Simplified form rendering that doesn't depend on other components
+  const renderSimpleForm = () => {
     if (!controller.subform) {
       return (
         <Text style={styles.errorText}>Subform configuration missing</Text>
       );
     }
 
-    const subform = controller.subform;
+    const controllers = getControllers();
 
-    if (subform.formtype === "steper" && subform.steps) {
-      return (
-        <StepsHandler
-          steps={subform.steps}
-          form={form}
-          onSubmit={() => {}} // No submit button in modal, handled by Save button
-          hideStepsIndication={false} // Hide the submit button in the step handler
-        />
-      );
-    } else {
-      // Default to normal form
-      return (
-        <NormalHandler
-          controllers={subform.controllers}
-          form={form}
-          onSubmit={() => {}} // No submit button in modal, handled by Save button
-          isStepMode={true} // Hide the submit button in the normal handler
-        />
-      );
-    }
+    return (
+      <View style={styles.simpleFormContainer}>
+        <Text style={styles.formInstructions}>
+          Fill in the form fields below and tap Save when done.
+        </Text>
+
+        {controllers.map((ctrl, index) => (
+          <View key={index} style={styles.formField}>
+            {ctrl.label && (
+              <Text style={styles.fieldLabel}>
+                {ctrl.label}
+                {!ctrl.optional && <Text style={styles.requiredStar}>*</Text>}
+              </Text>
+            )}
+
+            <TextInput
+              style={[
+                styles.fieldInput,
+                ctrl.type === "textarea" && styles.textareaInput,
+              ]}
+              placeholder={
+                ctrl.placeholder || `Enter ${ctrl.label || ctrl.name}`
+              }
+              value={form.getValues(ctrl.name || "")}
+              onChangeText={(value) =>
+                form.setValue(ctrl.name || "", value, {
+                  shouldValidate: true,
+                })
+              }
+              multiline={ctrl.type === "textarea"}
+              numberOfLines={ctrl.type === "textarea" ? 4 : 1}
+              secureTextEntry={ctrl.type === "password"}
+              keyboardType={
+                ctrl.type === "number" || ctrl.type === "phone"
+                  ? "numeric"
+                  : ctrl.type === "email"
+                  ? "email-address"
+                  : "default"
+              }
+            />
+
+            {form.formState.errors[ctrl.name || ""] && (
+              <Text style={styles.fieldError}>
+                {form.formState.errors[ctrl.name || ""]?.message?.toString()}
+              </Text>
+            )}
+          </View>
+        ))}
+      </View>
+    );
   };
 
   // Helper to safely display nested object data
-  const renderItemDetail: any = (key: string, value: any, prefix = "") => {
+  const renderItemDetail = (key: string, value: any, prefix = "") => {
     const fullKey = prefix ? `${prefix}.${key}` : key;
 
     if (value === null || value === undefined) {
@@ -713,7 +743,9 @@ const SubFormController = ({
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody}>{renderSubForm()}</ScrollView>
+            <ScrollView style={styles.modalBody}>
+              {renderSimpleForm()}
+            </ScrollView>
 
             {validationErrors.length > 0 && (
               <View style={styles.validationErrorsContainer}>
@@ -920,6 +952,47 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "500",
+  },
+  // Simple form styles
+  simpleFormContainer: {
+    padding: 5,
+  },
+  formInstructions: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  formField: {
+    marginBottom: 15,
+  },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 5,
+    color: "#333",
+  },
+  requiredStar: {
+    color: "#FF3B30",
+    marginLeft: 4,
+  },
+  fieldInput: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 5,
+    padding: 10,
+    fontSize: 16,
+    backgroundColor: "#fff",
+    minHeight: 46,
+  },
+  textareaInput: {
+    minHeight: 100,
+    textAlignVertical: "top",
+  },
+  fieldError: {
+    color: "#FF3B30",
+    fontSize: 12,
+    marginTop: 4,
   },
 });
 

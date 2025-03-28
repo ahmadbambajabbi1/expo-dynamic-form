@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { ZodSchema } from "zod";
 import { FormControllerProps, PropsPropsType, DynamicFormHanldeSubmitParamType, StepsType, apiOptionsType, ModalType } from "../types";
-declare function DynamicForm({ controllers, formSchema, handleSubmit, apiOptions, tricker, props, modalComponent, steps, formtype, stepPreview, hideStepsIndication, submitBtn, }: {
+interface DynamicFormProps {
     controllers?: FormControllerProps[];
     steps?: StepsType<ZodSchema>[];
     submitBtn?: {
@@ -16,5 +16,6 @@ declare function DynamicForm({ controllers, formSchema, handleSubmit, apiOptions
     props?: PropsPropsType;
     formtype?: "normal" | "steper";
     modalComponent?: (data: ModalType, setModal: (modal: ModalType) => void) => ReactNode;
-}): JSX.Element;
+}
+declare const DynamicForm: ({ controllers, steps, submitBtn, stepPreview, hideStepsIndication, formSchema, handleSubmit, apiOptions, tricker, props, modalComponent, formtype, }: DynamicFormProps) => JSX.Element;
 export default DynamicForm;

@@ -5,7 +5,6 @@ const { babel } = require("@rollup/plugin-babel");
 const terser = require("@rollup/plugin-terser");
 const peerDepsExternal = require("rollup-plugin-peer-deps-external");
 const { dts } = require("rollup-plugin-dts");
-const nodePolyfills = require("rollup-plugin-node-polyfills");
 const packageJson = require("./package.json");
 
 module.exports = [
@@ -27,42 +26,42 @@ module.exports = [
     ],
     plugins: [
       // Automatically exclude peer dependencies from the bundle
+      peerDepsExternal(),
+
+      // Custom plugin to handle React Native modules
       {
         name: "react-native-module-resolution",
         resolveId(source) {
           if (
             source.startsWith("react-native") ||
             source.startsWith("expo") ||
-            source.startsWith("@react-native")
+            source.startsWith("@react-native") ||
+            source === "react" ||
+            source === "react-dom"
           ) {
             return { id: source, external: true };
           }
           return null;
         },
       },
-      peerDepsExternal(),
-
-      // Add node polyfills - this should come before resolve
-      nodePolyfills(),
 
       // Resolve node_modules
       resolve({
-        preferBuiltins: false, // Important for React Native compatibility
-        browser: true, // Use browser-compatible versions when available
+        extensions: [".js", ".jsx", ".ts", ".tsx"],
+        preferBuiltins: false,
       }),
 
       // Convert CommonJS modules to ES6
       commonjs(),
 
       // Compile TypeScript
-      typescript({ tsconfig: "./tsconfig.json" }),
+      typescript({
+        tsconfig: "./tsconfig.json",
+        sourceMap: true,
+        declaration: true,
+      }),
 
-      // Transform modern JS to ES5
-      // babel({
-      //   // babelHelpers: "bundled",
-      //   // exclude: "node_modules/**",
-      //   // extensions: [".ts", ".tsx"],
-      // }),
+      // Transform with Babel
       babel({
         babelHelpers: "bundled",
         presets: [
@@ -70,10 +69,11 @@ module.exports = [
           "@babel/preset-typescript",
           ["@babel/preset-react", { runtime: "automatic" }],
         ],
+        extensions: [".js", ".jsx", ".ts", ".tsx"],
         exclude: "node_modules/**",
       }),
 
-      // Minify output
+      // Minify output for production
       terser(),
     ],
     // External dependencies that shouldn't be bundled
@@ -84,15 +84,14 @@ module.exports = [
       "expo-location",
       "expo-image-picker",
       "expo-document-picker",
+      "expo-file-system",
       "@react-native-async-storage/async-storage",
-      "axios",
-      "date-fns",
       "@react-native-community/datetimepicker",
       "react-hook-form",
       "zod",
-      "@hookform/resolvers/zod",
-      "invariant",
-      "expo-modules-core",
+      "@hookform/resolvers",
+      "axios",
+      "date-fns",
       /^@expo.*/,
       /^@react-native.*/,
     ],

@@ -5,8 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Platform,
-  Alert,
 } from "react-native";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";

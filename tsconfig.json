@@ -1,35 +1,3 @@
-// {
-//   "compilerOptions": {
-//     "target": "es5",
-//     "module": "ESNext",
-//     "lib": ["ESNext", "DOM"],
-//     "jsx": "react",
-//     "declaration": true,
-//     "declarationDir": "dist",
-//     "sourceMap": true,
-//     "outDir": "dist",
-//     "rootDir": "src",
-//     "strict": true,
-//     "moduleResolution": "node",
-//     "allowSyntheticDefaultImports": true,
-//     "esModuleInterop": true,
-//     "skipLibCheck": true,
-//     "forceConsistentCasingInFileNames": true,
-//     "resolveJsonModule": true,
-//     "baseUrl": ".",
-//     "paths": {
-//       "@/*": ["src/*"]
-//     }
-//   },
-//   "include": ["src/**/*"],
-//   "exclude": [
-//     "node_modules",
-//     "dist",
-//     "example",
-//     "**/*.test.ts",
-//     "**/*.test.tsx"
-//   ]
-// }
 {
   "compilerOptions": {
     "target": "es5",
@@ -45,7 +13,10 @@
     "declaration": true,
     "declarationDir": "dist",
     "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "sourceMap": true,
+    "isolatedModules": false,
+    "noImplicitAny": false
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.test.tsx"]

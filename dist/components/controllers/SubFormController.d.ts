@@ -23,5 +23,9 @@ type SubFormControllerProps = {
     };
     form: UseFormReturn<z.TypeOf<any>, any, undefined>;
 };
+/**
+ * SubFormController - Integrated with parent form
+ * This component handles nested form data that is stored within the parent form structure
+ */
 declare const SubFormController: ({ controller, field, form, }: SubFormControllerProps) => JSX.Element;
 export default SubFormController;

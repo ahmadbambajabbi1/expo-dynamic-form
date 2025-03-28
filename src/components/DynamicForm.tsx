@@ -17,23 +17,7 @@ import {
 } from "../types";
 import OttpInputHandler from "./controllers/OttpInputHandler";
 
-function DynamicForm({
-  controllers,
-  formSchema,
-  handleSubmit,
-  apiOptions = {
-    method: "POST",
-    api: "",
-  },
-  tricker,
-  props,
-  modalComponent,
-  steps,
-  formtype = "normal",
-  stepPreview,
-  hideStepsIndication = false,
-  submitBtn,
-}: {
+interface DynamicFormProps {
   controllers?: FormControllerProps[];
   steps?: StepsType<ZodSchema>[];
   submitBtn?: {
@@ -53,7 +37,26 @@ function DynamicForm({
     data: ModalType,
     setModal: (modal: ModalType) => void
   ) => ReactNode;
-}) {
+}
+
+// Avoid using React.FC due to incompatibilities with JSX in some TypeScript versions
+const DynamicForm = ({
+  controllers,
+  steps,
+  submitBtn,
+  stepPreview,
+  hideStepsIndication = false,
+  formSchema,
+  handleSubmit,
+  apiOptions = {
+    method: "POST",
+    api: "",
+  },
+  tricker,
+  props,
+  modalComponent,
+  formtype = "normal",
+}: DynamicFormProps): JSX.Element => {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [verifyingData] = useState<any>(null);
   const [verify] = useState(false);
@@ -71,14 +74,18 @@ function DynamicForm({
     return controllers.reduce((acc: FormValues, controller) => {
       if ("groupControllers" in controller && controller.groupControllers) {
         controller.groupControllers.forEach((field) => {
-          acc[field.name as any] = field.defaultValue || "";
+          if (field.name) {
+            acc[field.name] = field.defaultValue || "";
+          }
         });
       } else {
         const field = controller as FormControllerProps;
-        acc[field.name as any] = field.defaultValue || "";
+        if (field.name) {
+          acc[field.name] = field.defaultValue || "";
+        }
       }
       return acc;
-    }, {});
+    }, {} as FormValues);
   };
 
   const initializeDefaultValuesFromSteps = (
@@ -88,15 +95,19 @@ function DynamicForm({
       step.controllers.forEach((controller) => {
         if ("groupControllers" in controller && controller.groupControllers) {
           controller.groupControllers.forEach((field) => {
-            acc[field.name as any] = field.defaultValue || "";
+            if (field.name) {
+              acc[field.name] = field.defaultValue || "";
+            }
           });
         } else {
           const field = controller as FormControllerProps;
-          acc[field.name as any] = field.defaultValue || "";
+          if (field.name) {
+            acc[field.name] = field.defaultValue || "";
+          }
         }
       });
       return acc;
-    }, {});
+    }, {} as FormValues);
   };
 
   const form = useForm<FormValues>({
@@ -128,7 +139,7 @@ function DynamicForm({
     }
   };
 
-  async function onSubmit(values: z.infer<any>) {
+  async function onSubmit(values: any) {
     let data: any = {};
     if (apiOptions?.extraData) {
       data = {
@@ -183,15 +194,17 @@ function DynamicForm({
           if (type === "form") {
             if (Array.isArray(data)) {
               data.map((dt) => {
-                setError(dt?.path[0], {
-                  type: "manual",
-                  message: dt?.message,
-                });
+                if (dt?.path && dt?.path[0] && dt?.message) {
+                  setError(dt.path[0], {
+                    type: "manual",
+                    message: dt.message,
+                  });
+                }
               });
-            } else {
-              setError(data?.path[0], {
+            } else if (data?.path && data?.path[0] && data?.message) {
+              setError(data.path[0], {
                 type: "manual",
-                message: data?.message,
+                message: data.message,
               });
             }
           }
@@ -212,7 +225,6 @@ function DynamicForm({
   }
 
   if (verify) {
-    // Use the JSX element directly, not as a type
     return (
       <OttpInputHandler
         apiOptions={apiOptions}
@@ -236,13 +248,13 @@ function DynamicForm({
         <NormalHandler
           controllers={controllers}
           props={props}
-          form={form as any}
+          form={form}
           onSubmit={form.handleSubmit(onSubmit)}
         />
       )}
 
       {/* Only show the submit button when NOT using step form type and not verifying */}
-      {!verify && !formtype && (
+      {!verify && formtype === "normal" && (
         <View style={styles.buttonContainer}>
           {tricker ? (
             tricker({ submitLoading, isValid: form.formState.isValid })
@@ -268,14 +280,14 @@ function DynamicForm({
 
       {toastMessage && (
         <View style={styles.toast}>
-          {/* You can implement a Toast component here */}
+          {/* You could implement a Toast component here */}
         </View>
       )}
     </View>
   );
-}
+};
 
-const styles = StyleSheet?.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 1,
@@ -285,7 +297,6 @@ const styles = StyleSheet?.create({
   },
   submitButton: {
     marginTop: 8,
-    textTransform: "capitalize",
   },
   toast: {
     position: "absolute",
@@ -296,5 +307,5 @@ const styles = StyleSheet?.create({
     borderRadius: 5,
   },
 });
-// DynamicForm.displayName = "DynamicForm";
+
 export default DynamicForm;

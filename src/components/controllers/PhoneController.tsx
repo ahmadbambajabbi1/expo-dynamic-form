@@ -227,15 +227,16 @@ const PhoneController = ({ controller, field, form }: PropsType) => {
       // Simple grouping for international numbers
       if (number.length > 6) {
         // Group into threes or fours depending on length
-        const groups = [];
+        const parts: string[] = [];
         let remaining = number;
 
         while (remaining.length > 0) {
-          groups.push(remaining.substring(0, 3));
+          // Use substring which returns a string (not never)
+          parts.push(remaining.substring(0, 3));
           remaining = remaining.substring(3);
         }
 
-        return groups.join(" ");
+        return parts.join(" ");
       }
     }
 
