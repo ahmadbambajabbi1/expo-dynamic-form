@@ -38,14 +38,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/expo-dynamic-form.git"
+    "url": "git+https://github.com/ahmadbambajabbi1/expo-dynamic-form.git"
   },
   "author": "Your Name <your.email@example.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/yourusername/expo-dynamic-form/issues"
+    "url": "https://github.com/ahmadbambajabbi1/expo-dynamic-form/issues"
   },
-  "homepage": "https://github.com/yourusername/expo-dynamic-form#readme",
+  "homepage": "https://github.com/ahmadbambajabbi1/expo-dynamic-form#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },

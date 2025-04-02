@@ -2,6 +2,8 @@ import axios from "axios";
 
 // @ts-ignore
 import userConfig from "../../../../form.config.json";
+// @ts-ignore
+import { getSession } from "../../../../services/expo-dynamic-service";
 const Axios = axios.create({
   baseURL: userConfig.api?.baseURL || "",
   headers: {
@@ -12,6 +14,20 @@ const Axios = axios.create({
   },
   timeout: userConfig.api?.timeout || 30000,
 });
+Axios.interceptors.request.use(
+  async (config) => {
+    try {
+      const session = await getSession();
+      if (session?.accessToken) {
+        config.headers.Authorization = `Bearer ${session.accessToken}`;
+      }
+    } catch (error) {
+      console.warn("Error fetching session token:", error);
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 export default Axios;
 // import axios from "axios";
 
