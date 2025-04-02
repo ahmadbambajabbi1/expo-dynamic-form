@@ -1,0 +1,30 @@
+# Examples
+example/
+
+# Tests
+__tests__/
+coverage/
+
+# Build tools
+.circleci/
+.github/
+.vscode/
+.idea/
+
+# Configs
+.babelrc
+.eslintrc.js
+.prettierrc
+tsconfig.json
+babel.config.js
+metro.config.js
+jest.config.js
+
+# Sources
+src/
+
+# Misc
+.DS_Store
+.env
+npm-debug.log
+yarn-error.log

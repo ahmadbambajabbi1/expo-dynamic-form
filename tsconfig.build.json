@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig",
+  "compilerOptions": {
+    "declaration": true,
+    "outDir": "lib/typescript"
+  },
+  "exclude": ["**/__tests__/**", "example"]
+}
