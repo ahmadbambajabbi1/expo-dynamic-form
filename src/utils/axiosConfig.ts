@@ -1,7 +1,22 @@
 import axios from "axios";
 
 // @ts-ignore
-import { getSession } from "../../../../services/expo-dynamic-service";
+let getSession: () => Promise<{ accessToken?: string }> = async () => ({
+  accessToken: undefined,
+});
+
+try {
+  // @ts-ignore
+  const dynamicService = require("../../../../services/expo-dynamic-service");
+  if (dynamicService && dynamicService.getSession) {
+    getSession = dynamicService.getSession;
+  }
+} catch (error) {
+  console.warn(
+    "Could not import expo-dynamic-service, using default session handler"
+  );
+}
+
 // @ts-ignore
 let userConfig;
 try {
@@ -27,6 +42,7 @@ const Axios = axios.create({
   },
   timeout: userConfig?.api?.timeout || 30000,
 });
+
 Axios.interceptors.request.use(
   async (config) => {
     try {
@@ -41,6 +57,7 @@ Axios.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
+
 export default Axios;
 // import axios from "axios";
 
