@@ -1,3 +1,4 @@
+// minify.js
 const { execSync } = require("child_process");
 const { readdirSync, statSync } = require("fs");
 const { join } = require("path");
@@ -23,7 +24,9 @@ const commonJsFiles = findJsFiles("./lib/commonjs");
 commonJsFiles.forEach((file) => {
   console.log(`Minifying ${file}...`);
   try {
-    execSync(`npx terser "${file}" -o "${file}" --compress --mangle`);
+    execSync(
+      `npx terser "${file}" -o "${file}" --compress --mangle --toplevel`
+    );
   } catch (error) {
     console.error(`Error minifying ${file}:`, error.message);
   }
@@ -34,7 +37,9 @@ const moduleFiles = findJsFiles("./lib/module");
 moduleFiles.forEach((file) => {
   console.log(`Minifying ${file}...`);
   try {
-    execSync(`npx terser "${file}" -o "${file}" --compress --mangle`);
+    execSync(
+      `npx terser "${file}" -o "${file}" --compress --mangle --toplevel`
+    );
   } catch (error) {
     console.error(`Error minifying ${file}:`, error.message);
   }
