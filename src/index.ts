@@ -82,6 +82,7 @@
 
 // Main component export
 import DynamicForm from "./components/DynamicForm";
+import { initPackage } from "./utils/axiosConfig";
 
 // Export types
 export type {
@@ -127,7 +128,7 @@ export type {
 // import LoadingComponent from "./components/ui/LoadingComponent";
 
 // Export main component
-export { DynamicForm };
+export { DynamicForm, initPackage };
 
 // Export handlers
 // export { FormElementHandler, NormalHandler, StepsHandler };
