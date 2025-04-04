@@ -1,18 +1,31 @@
 import axios from "axios";
 
 // @ts-ignore
-import userConfig from "../../../../form.config.json";
-// @ts-ignore
 import { getSession } from "../../../../services/expo-dynamic-service";
+// @ts-ignore
+let userConfig;
+try {
+  // @ts-ignore
+  userConfig = require("../../../../form.config.json");
+} catch (error) {
+  userConfig = {
+    api: {
+      baseURL: "",
+      headers: {},
+      timeout: 30000,
+    },
+  };
+}
+
 const Axios = axios.create({
-  baseURL: userConfig.api?.baseURL || "",
+  baseURL: userConfig?.api?.baseURL || "",
   headers: {
-    ...(userConfig.api?.headers?.["Content-Type"]
+    ...(userConfig?.api?.headers?.["Content-Type"]
       ? {}
       : { "Content-Type": "application/json" }),
-    ...(userConfig.api?.headers || {}),
+    ...(userConfig?.api?.headers || {}),
   },
-  timeout: userConfig.api?.timeout || 30000,
+  timeout: userConfig?.api?.timeout || 30000,
 });
 Axios.interceptors.request.use(
   async (config) => {
