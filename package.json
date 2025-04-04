@@ -24,7 +24,7 @@
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
     "prepare": "bob build && npm run minify",
     "minify": "terser lib/commonjs/**/*.js -o lib/commonjs/**/*.js && terser lib/module/**/*.js -o lib/module/**/*.js",
-    "release": "npm run prepare && release-it",
+    "release": "release-it --no-git.requireUpstream --no-npm.build",
     "example": "yarn --cwd example",
     "bootstrap": "yarn example && yarn install"
   },
