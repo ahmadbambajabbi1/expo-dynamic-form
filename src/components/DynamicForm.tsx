@@ -120,6 +120,8 @@ const DynamicForm = ({
   });
 
   async function onSubmit(values: z.infer<any>) {
+    console.log({ values });
+    console.log({ DynamicAxios });
     let data: any = {};
     if (apiOptions?.extraData) {
       data = {
@@ -173,6 +175,7 @@ const DynamicForm = ({
           reset();
         }
       } catch (error) {
+        console.log({ error });
         // catchErrorHandler(error, (data, type) => {
         const type = error?.response?.data?.errorType;
         const data = error?.response?.data?.error;

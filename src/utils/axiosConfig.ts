@@ -105,6 +105,7 @@ export const initPackage = (
   config: any,
   sessionFn?: () => Promise<{ accessToken?: string }>
 ) => {
+  console.log({ config, sessionFn });
   userConfig = config;
 
   if (sessionFn) {
