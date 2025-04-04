@@ -11,7 +11,7 @@ import { UseFormReturn, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { FormControllerProps } from "../../types";
 import { Ionicons } from "@expo/vector-icons";
-import Axios from "../../utils/axiosConfig";
+import SelectAxios from "../../utils/axiosConfig";
 
 type PropsType = {
   field: {
@@ -169,12 +169,15 @@ const ApiOptionController = ({ controller, field, form }: PropsType) => {
         ? paramName.charAt(0).toUpperCase() + paramName.slice(1)
         : "";
 
-      const res = await Axios.get(controller?.optionsApiOptions?.api as any, {
-        params: {
-          [`filterBy${paramToCapitalize}Id`]: dependantValue,
-          ...controller?.optionsApiOptions?.options?.params,
-        },
-      });
+      const res = await SelectAxios.get(
+        controller?.optionsApiOptions?.api as any,
+        {
+          params: {
+            [`filterBy${paramToCapitalize}Id`]: dependantValue,
+            ...controller?.optionsApiOptions?.options?.params,
+          },
+        }
+      );
 
       setOptionsData(res?.data?.data || []);
 

@@ -16,7 +16,7 @@ import {
   ModalType,
 } from "../types";
 import OttpInputHandler from "./controllers/OttpInputHandler";
-import Axios from "../utils/axiosConfig";
+import DynamicAxios from "../utils/axiosConfig";
 
 interface DynamicFormProps {
   controllers?: FormControllerProps[];
@@ -150,9 +150,13 @@ const DynamicForm = ({
           (apiOptions?.method?.toLowerCase() as HttpMethod) || "post";
         let res;
         if (method === "get") {
-          res = await Axios.get(apiOptions?.api, apiOptions?.options);
+          res = await DynamicAxios.get(apiOptions?.api, apiOptions?.options);
         } else {
-          res = await Axios[method](apiOptions?.api, data, apiOptions?.options);
+          res = await DynamicAxios[method](
+            apiOptions?.api,
+            data,
+            apiOptions?.options
+          );
         }
         if (res?.status >= 200 && res.status <= 299) {
           setToastMessage(res?.data?.message || "Success");

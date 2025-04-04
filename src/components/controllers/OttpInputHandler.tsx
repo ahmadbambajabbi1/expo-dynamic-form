@@ -13,7 +13,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Button } from "../ui/button";
 import { apiOptionsType } from "../../types";
-import Axios from "../../utils/axiosConfig";
+import OttpAxios from "../../utils/axiosConfig";
 const VERIFICATION_DATA_LOCASTORAGE_NAME = "dhdhd";
 const VERIFICATION_VERIFY_NAME = "dkkdd";
 type PropsType = {
@@ -108,7 +108,7 @@ const OttpInputHandler = ({ verifyingDataProps, apiOptions }: PropsType) => {
   const handleResend = async () => {
     if (minutes > 0) return;
     try {
-      const res = await Axios.post("/auth/verification-resend", {
+      const res = await OttpAxios.post("/auth/verification-resend", {
         ...verifyingData,
       });
       if (res?.status >= 200 && res.status <= 299) {
@@ -122,7 +122,7 @@ const OttpInputHandler = ({ verifyingDataProps, apiOptions }: PropsType) => {
   const onSubmit = async (values: { inputValue: string }) => {
     setSubmitLoading(true);
     try {
-      const res = await Axios.post("/users/account/verification", {
+      const res = await OttpAxios.post("/users/account/verification", {
         ...values,
         ...verifyingData,
       });

@@ -13,7 +13,7 @@ import { UseFormReturn, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { FormControllerProps } from "../../types";
 import { Ionicons } from "@expo/vector-icons";
-import Axios from "../../utils/axiosConfig";
+import SearchableAxios from "../../utils/axiosConfig";
 
 type PropsType = {
   field: {
@@ -86,7 +86,7 @@ const SearchableSelectController = ({ controller, field, form }: PropsType) => {
 
     setLoading(true);
     try {
-      const res = await Axios.get(controller.optionsApiOptions.api, {
+      const res = await SearchableAxios.get(controller.optionsApiOptions.api, {
         params: {
           ...dependantValues,
           ...controller?.optionsApiOptions?.options?.params,
