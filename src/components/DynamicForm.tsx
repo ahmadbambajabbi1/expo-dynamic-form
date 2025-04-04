@@ -15,7 +15,6 @@ import {
   apiOptionsType,
   ModalType,
 } from "../types";
-import OttpInputHandler from "./controllers/OttpInputHandler";
 import DynamicAxios from "../utils/axiosConfig";
 
 interface DynamicFormProps {
