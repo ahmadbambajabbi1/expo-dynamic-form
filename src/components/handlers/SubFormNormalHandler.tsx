@@ -2,18 +2,25 @@ import React, { useEffect, useState } from "react";
 import { View, StyleSheet, ScrollView, Text } from "react-native";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
-import FormElementHandler from "./FormElementHandler";
+import FormElementHandler from "./SubFormFormElementHandler";
 import { FormControllerProps, PropsPropsType } from "../../types";
 
-type PropsType = {
+type SubFormNormalHandlerProps = {
   props?: PropsPropsType;
   controllers?: FormControllerProps[];
   form: UseFormReturn<z.TypeOf<any>, any, undefined>;
   onSubmit: () => void;
-  isStepMode?: boolean; // Added prop to determine if we're in step mode
+  isStepMode?: boolean;
+  // Optional callback for field changes
+  onFieldChange?: (name: string, value: any) => void;
 };
 
-const NormalHandler = ({ props, controllers, form }: PropsType) => {
+const SubFormNormalHandler = ({
+  props,
+  controllers,
+  form,
+  onFieldChange,
+}: SubFormNormalHandlerProps) => {
   const [controllersState, setControllersState] = useState<
     FormControllerProps[]
   >([]);
@@ -85,6 +92,7 @@ const NormalHandler = ({ props, controllers, form }: PropsType) => {
                       controller={groupController}
                       form={form}
                       props={props}
+                      onFieldChange={onFieldChange}
                     />
                   ))}
                 </View>
@@ -97,21 +105,11 @@ const NormalHandler = ({ props, controllers, form }: PropsType) => {
               controller={controller}
               form={form}
               props={props}
+              onFieldChange={onFieldChange}
             />
           );
         })}
       </View>
-
-      {/* Only show submit button if not in step mode */}
-      {/* {!isStepMode && (
-        <TouchableOpacity
-          style={styles.submitButton}
-          onPress={onSubmit}
-          disabled={!form.formState.isValid}
-        >
-          <Text style={styles.submitButtonText}>Submit</Text>
-        </TouchableOpacity>
-      )} */}
     </ScrollView>
   );
 };
@@ -151,20 +149,6 @@ const styles = StyleSheet.create({
   groupControllerBase: {
     padding: 10,
   },
-  submitButton: {
-    marginTop: 16,
-    marginHorizontal: 10,
-    backgroundColor: "#0077CC",
-    height: 50,
-    borderRadius: 5,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  submitButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
 });
 
-export default NormalHandler;
+export default SubFormNormalHandler;

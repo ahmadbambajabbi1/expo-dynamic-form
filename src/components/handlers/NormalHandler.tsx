@@ -10,10 +10,17 @@ type PropsType = {
   controllers?: FormControllerProps[];
   form: UseFormReturn<z.TypeOf<any>, any, undefined>;
   onSubmit: () => void;
-  isStepMode?: boolean; // Added prop to determine if we're in step mode
+  isStepMode?: boolean;
+  // NEW: Add callback for field changes
+  onFieldChange?: (name: string, value: any) => void;
 };
 
-const NormalHandler = ({ props, controllers, form }: PropsType) => {
+const NormalHandler = ({
+  props,
+  controllers,
+  form,
+  onFieldChange,
+}: PropsType) => {
   const [controllersState, setControllersState] = useState<
     FormControllerProps[]
   >([]);
@@ -85,6 +92,7 @@ const NormalHandler = ({ props, controllers, form }: PropsType) => {
                       controller={groupController}
                       form={form}
                       props={props}
+                      onFieldChange={onFieldChange} // Pass the field change callback
                     />
                   ))}
                 </View>
@@ -97,21 +105,11 @@ const NormalHandler = ({ props, controllers, form }: PropsType) => {
               controller={controller}
               form={form}
               props={props}
+              onFieldChange={onFieldChange} // Pass the field change callback
             />
           );
         })}
       </View>
-
-      {/* Only show submit button if not in step mode */}
-      {/* {!isStepMode && (
-        <TouchableOpacity
-          style={styles.submitButton}
-          onPress={onSubmit}
-          disabled={!form.formState.isValid}
-        >
-          <Text style={styles.submitButtonText}>Submit</Text>
-        </TouchableOpacity>
-      )} */}
     </ScrollView>
   );
 };

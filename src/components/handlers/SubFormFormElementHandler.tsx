@@ -18,7 +18,6 @@ import LocationController from "../controllers/LocationController";
 import CurrentLocationController from "../controllers/CurrentLocationController";
 import PhoneController from "../controllers/PhoneController";
 import TagsInputController from "../controllers/TagsInputController";
-import SubFormController from "../controllers/SubFormController";
 import FileUploadController from "../controllers/FileUploadController";
 import CurrencyController from "../controllers/CurrencyController";
 import ListCreatorController from "../controllers/ListCreatorController";
@@ -36,10 +35,9 @@ type PropsType = {
   onFieldChange?: (name: string, value: any) => void;
 };
 
-const FormElementHandler = ({
+const SubFormFormElementHandler = ({
   controller,
   form,
-  props,
   onFieldChange,
 }: PropsType) => {
   const selectedValues = useWatch({
@@ -47,9 +45,7 @@ const FormElementHandler = ({
     name: controller.name || "",
   });
 
-  const [mappedControllers, setMappedControllers] = useState<
-    FormControllerProps[]
-  >([]);
+  const [, setMappedControllers] = useState<FormControllerProps[]>([]);
 
   useEffect(() => {
     const fetchControllers = async () => {
@@ -304,14 +300,6 @@ const FormElementHandler = ({
             form={form}
           />
         );
-      case "sub-form":
-        return (
-          <SubFormController
-            controller={controller}
-            field={fieldProps as any}
-            form={form}
-          />
-        );
       case "number":
         return (
           <NumberInputController
@@ -361,60 +349,16 @@ const FormElementHandler = ({
             )}
           </View>
         )}
-
         {renderFormField()}
-
         {controller?.description && (
           <Text style={styles.description}>{controller?.description}</Text>
         )}
-
         {form.formState.errors[controller?.name || ""] && (
           <Text style={styles.errorText}>
             {form.formState.errors[controller?.name || ""]?.message?.toString()}
           </Text>
         )}
       </View>
-
-      {mappedControllers?.length > 0 &&
-        mappedControllers.map((controller, index) => {
-          if (controller.groupControllers) {
-            return (
-              <View
-                key={`${index}-${controller?.groupName || controller?.type}`}
-                style={[styles.groupContainer, controller?.style]}
-              >
-                {controller?.groupName && (
-                  <Text style={styles.groupName}>{controller?.groupName}</Text>
-                )}
-                <View
-                  style={
-                    props?.groupcontrollerBase?.style ||
-                    styles.groupControllerContainer
-                  }
-                >
-                  {controller?.groupControllers?.map((groupController) => (
-                    <FormElementHandler
-                      key={`${index}-${groupController?.name}`}
-                      controller={groupController}
-                      form={form}
-                      props={props}
-                      onFieldChange={onFieldChange} // Pass the callback down
-                    />
-                  ))}
-                </View>
-              </View>
-            );
-          }
-          return (
-            <FormElementHandler
-              key={`${index}-${controller?.name}`}
-              controller={controller}
-              form={form}
-              props={props}
-              onFieldChange={onFieldChange} // Pass the callback down
-            />
-          );
-        })}
     </>
   );
 };
@@ -497,4 +441,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FormElementHandler;
+export default SubFormFormElementHandler;

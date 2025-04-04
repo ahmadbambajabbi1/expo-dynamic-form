@@ -1,4 +1,10 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import {
   View,
   Text,
@@ -8,12 +14,13 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import { UseFormReturn } from "react-hook-form";
+import { UseFormReturn, useForm } from "react-hook-form";
 import { z } from "zod";
-import { FormControllerProps, StepsType } from "../../types/index";
+import { FormControllerProps, StepsType } from "../../types";
 import { Ionicons } from "@expo/vector-icons";
-import SubFormNormalHandler from "../handlers/SubFormNormalHandler";
-import SubFormStepsHandler from "../handlers/SubFormStepsHandler";
+import NormalHandler from "../handlers/SubFormNormalHandler";
+import StepsHandler from "../handlers/SubFormStepsHandler";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 type SubFormControllerProps = {
   field: {
@@ -40,12 +47,13 @@ type SubFormControllerProps = {
 const SubFormController = ({
   controller,
   field,
-  form,
+  form: parentForm,
 }: SubFormControllerProps) => {
-  // Track initialization state to avoid re-initializing
-  const initializedRef = useRef(false);
+  // Use refs to avoid unnecessary re-renders
+  const subformRef = useRef(null);
+  const isInitializedRef = useRef(false);
 
-  // Main state
+  // Component state
   const [modalVisible, setModalVisible] = useState(false);
   const [items, setItems] = useState<any[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -54,252 +62,600 @@ const SubFormController = ({
   // Check if multiple items are allowed
   const allowMultipleItems = controller.addMoreVisible === true;
 
-  // Initialize items from field value only once
+  // Setup an isolated subform
+  const subformSchema = controller.subform?.formSchema || z.any();
+  const subformMethods = useForm({
+    resolver: zodResolver(subformSchema),
+    mode: "onBlur",
+  });
+
+  // Save subform ref
   useEffect(() => {
-    if (initializedRef.current) return;
+    subformRef.current = subformMethods;
+  }, [subformMethods]);
+
+  // Function to fix any existing items in the data - memoized to avoid unnecessary recalculations
+  const flattenStructure = useCallback(
+    (item: any) => {
+      if (!item || typeof item !== "object") return item;
+
+      // Extract the base name from the controller name (if present)
+      const controllerBase = controller.name || "";
+
+      // Look for any nested objects that match the controller name pattern
+      // This will handle cases like "ticket", "venue", or any custom name
+      for (const key in item) {
+        // Check if the item has a property matching the controller name
+        // or if it has a common prefix/naming pattern
+        if (
+          (key === controllerBase ||
+            key.toLowerCase() === controllerBase.toLowerCase()) &&
+          typeof item[key] === "object" &&
+          item[key] !== null
+        ) {
+          // Found a nested object that matches our controller name
+          // Move all properties from the nested object to the root level
+          const result = { ...item[key] };
+
+          // Copy any other properties that weren't under the nested key
+          Object.keys(item).forEach((prop) => {
+            if (prop !== key) {
+              result[prop] = item[prop];
+            }
+          });
+
+          return result;
+        }
+      }
+
+      // If we don't find any specific nested object to flatten,
+      // return the item as is
+      return item;
+    },
+    [controller.name]
+  );
+
+  // Initialize from existing value - only runs once
+  useEffect(() => {
+    if (isInitializedRef.current) return;
+    isInitializedRef.current = true;
 
     if (field.value) {
       try {
+        // Handle array data
         if (Array.isArray(field.value)) {
-          // If it's already an array, use it directly
-          setItems(field.value);
-        } else if (typeof field.value === "object" && field.value !== null) {
-          // If it's a single object and we don't allow multiple items, wrap it in an array for internal use
-          setItems([field.value]);
-        } else if (typeof field.value === "string") {
+          // Fix each item in the array
+          const fixedItems = field.value.map((item) => flattenStructure(item));
+          setItems(fixedItems);
+        }
+        // Handle object data
+        else if (
+          typeof field.value === "object" &&
+          field.value !== null &&
+          !Array.isArray(field.value)
+        ) {
+          // Fix the structure
+          const fixedItem = flattenStructure(field.value);
+
+          // If it's a single object and multiple items aren't allowed, set it as the only item
+          if (!allowMultipleItems) {
+            setItems([fixedItem]);
+          } else {
+            // Otherwise, wrap it in an array for multiple items
+            setItems([fixedItem]);
+            // Update form value to be an array
+            field.onChange([fixedItem]);
+            parentForm.setValue(controller?.name || "", [fixedItem], {
+              shouldValidate: true,
+            });
+          }
+        }
+        // Handle JSON string
+        else if (typeof field.value === "string") {
           try {
-            // Try parsing as JSON
-            const parsed = JSON.parse(field.value);
-            setItems(Array.isArray(parsed) ? parsed : [parsed]);
-          } catch {
-            // Not valid JSON
+            const parsedItems = JSON.parse(field.value);
+            if (Array.isArray(parsedItems)) {
+              // Fix each item in the array
+              const fixedItems = parsedItems.map((item) =>
+                flattenStructure(item)
+              );
+              setItems(fixedItems);
+
+              // Update form with array or object based on addMoreVisible
+              if (!allowMultipleItems && fixedItems.length === 1) {
+                field.onChange(fixedItems[0]);
+                parentForm.setValue(controller?.name || "", fixedItems[0], {
+                  shouldValidate: true,
+                });
+              } else {
+                field.onChange(fixedItems);
+                parentForm.setValue(controller?.name || "", fixedItems, {
+                  shouldValidate: true,
+                });
+              }
+            } else if (
+              typeof parsedItems === "object" &&
+              parsedItems !== null
+            ) {
+              // Fix the structure
+              const fixedItem = flattenStructure(parsedItems);
+
+              // Handle single object
+              setItems([fixedItem]);
+              if (!allowMultipleItems) {
+                field.onChange(fixedItem);
+                parentForm.setValue(controller?.name || "", fixedItem, {
+                  shouldValidate: true,
+                });
+              } else {
+                field.onChange([fixedItem]);
+                parentForm.setValue(controller?.name || "", [fixedItem], {
+                  shouldValidate: true,
+                });
+              }
+            }
+          } catch (error) {
+            // Not valid JSON, start with empty array
+            setItems([]);
           }
         }
       } catch (error) {
         console.error("Error initializing items:", error);
+        setItems([]);
       }
     }
-
-    initializedRef.current = true;
   }, []);
 
-  // Update the parent form when items change, but we need to handle the format differently
-  // based on whether multiple items are allowed
+  // Update the main form when items change
   useEffect(() => {
+    // Skip initial render
+    if (!isInitializedRef.current) return;
+
     if (items.length > 0) {
-      if (allowMultipleItems) {
-        // For multiple items, return the array
-        field.onChange(items);
-        form.setValue(controller?.name || "", items, {
+      // Apply the flattening to each item before updating the form
+      const fixedItems = items.map((item) => flattenStructure(item));
+
+      if (!allowMultipleItems) {
+        // When not allowing multiple items, store as an object
+        field.onChange(fixedItems[0]);
+        parentForm.setValue(controller?.name || "", fixedItems[0], {
           shouldValidate: true,
         });
       } else {
-        // For single item, return only the first object
-        field.onChange(items[0]);
-        form.setValue(controller?.name || "", items[0], {
+        // When allowing multiple items, store as an array
+        field.onChange(fixedItems);
+        parentForm.setValue(controller?.name || "", fixedItems, {
           shouldValidate: true,
         });
       }
     } else {
-      // No items, set appropriate empty value
-      if (allowMultipleItems) {
-        field.onChange([]);
-        form.setValue(controller?.name || "", [], {
-          shouldValidate: true,
-        });
-      } else {
+      // No items, set empty value
+      if (!allowMultipleItems) {
         field.onChange({});
-        form.setValue(
+        parentForm.setValue(
           controller?.name || "",
           {},
           {
             shouldValidate: true,
           }
         );
+      } else {
+        field.onChange([]);
+        parentForm.setValue(controller?.name || "", [], {
+          shouldValidate: true,
+        });
       }
     }
-  }, [items, allowMultipleItems]);
+  }, [items]);
 
-  const handleAddItem = () => {
+  // Handle adding a new item - memoized to prevent recreating on each render
+  const handleAddItem = useCallback(() => {
     setEditingIndex(null);
     setValidationErrors([]);
 
-    // Clear the form for a new item
-    const subformControllers =
-      controller.subform?.formtype === "steper"
-        ? controller.subform.steps?.flatMap((step) => step.controllers) || []
-        : controller.subform?.controllers || [];
+    // Reset the subform
+    subformMethods.reset({});
 
-    // Reset with default values only
-    const defaultValues = {};
-    subformControllers.forEach((ctrl) => {
-      if (ctrl.name && ctrl.defaultValue !== undefined) {
-        defaultValues[ctrl.name] = ctrl.defaultValue;
-      }
-    });
-
-    form.reset(defaultValues);
-
-    setModalVisible(true);
-  };
-
-  const handleEditItem = (index: number) => {
-    setEditingIndex(index);
-    setValidationErrors([]);
-
-    // Reset form with item values
-    const itemToEdit = items[index];
-    if (itemToEdit) {
-      form.reset(itemToEdit);
+    // Pre-fill form with default values
+    if (
+      controller.subform?.formtype === "normal" &&
+      controller.subform.controllers
+    ) {
+      controller.subform.controllers.forEach((ctrl) => {
+        if (ctrl.name) {
+          subformMethods.setValue(ctrl.name, ctrl.defaultValue || "", {
+            shouldValidate: false,
+          });
+        }
+      });
+    } else if (
+      controller.subform?.formtype === "steper" &&
+      controller.subform.steps
+    ) {
+      controller.subform.steps.forEach((step) => {
+        step.controllers.forEach((ctrl) => {
+          if (ctrl.name) {
+            subformMethods.setValue(ctrl.name, ctrl.defaultValue || "", {
+              shouldValidate: false,
+            });
+          }
+        });
+      });
     }
 
     setModalVisible(true);
-  };
+  }, [controller.subform]);
 
-  const handleDeleteItem = (index: number) => {
-    Alert.alert("Delete Item", "Are you sure you want to delete this item?", [
-      {
-        text: "Cancel",
-        style: "cancel",
-      },
-      {
-        text: "Delete",
-        onPress: () => {
-          const newItems = [...items];
-          newItems.splice(index, 1);
-          setItems(newItems);
-        },
-        style: "destructive",
-      },
-    ]);
-  };
+  // Handle editing an existing item - memoized to prevent recreating on each render
+  const handleEditItem = useCallback(
+    (index: number) => {
+      setEditingIndex(index);
+      const itemToEdit = items[index];
+      setValidationErrors([]);
 
-  const validateSubForm = () => {
-    if (!controller.subform?.formSchema) {
-      return true;
-    }
+      // Reset the subform first
+      subformMethods.reset({});
 
-    try {
-      const values = form.getValues();
-      const result = controller.subform.formSchema.safeParse(values);
+      // Set the current values in the form
+      if (
+        controller.subform?.formtype === "normal" &&
+        controller.subform.controllers
+      ) {
+        controller.subform.controllers.forEach((ctrl) => {
+          if (ctrl.name && itemToEdit) {
+            // Handle nested properties using path notation (e.g., "venue.name")
+            const nameParts = ctrl.name.split(".");
+            let value = itemToEdit;
 
-      if (result.success) {
-        return true;
-      } else {
-        setValidationErrors(result.error.issues);
+            for (const part of nameParts) {
+              if (value && typeof value === "object") {
+                value = value[part];
+              } else {
+                value = undefined;
+                break;
+              }
+            }
 
-        result.error.issues.forEach((issue) => {
-          const path = Array.isArray(issue.path) ? issue.path[0] : issue.path;
-          form.setError(path as string, {
-            type: "manual",
-            message: issue.message,
+            // If found a value, set it in the form
+            if (value !== undefined) {
+              subformMethods.setValue(ctrl.name, value, {
+                shouldValidate: false,
+              });
+            } else {
+              // If not found, set default value
+              subformMethods.setValue(ctrl.name, ctrl.defaultValue || "", {
+                shouldValidate: false,
+              });
+            }
+          }
+        });
+      } else if (
+        controller.subform?.formtype === "steper" &&
+        controller.subform.steps
+      ) {
+        controller.subform.steps.forEach((step) => {
+          step.controllers.forEach((ctrl) => {
+            if (ctrl.name && itemToEdit) {
+              // Handle nested properties
+              const nameParts = ctrl.name.split(".");
+              let value = itemToEdit;
+
+              for (const part of nameParts) {
+                if (value && typeof value === "object") {
+                  value = value[part];
+                } else {
+                  value = undefined;
+                  break;
+                }
+              }
+
+              // Set form value if found
+              if (value !== undefined) {
+                subformMethods.setValue(ctrl.name, value, {
+                  shouldValidate: false,
+                });
+              } else {
+                subformMethods.setValue(ctrl.name, ctrl.defaultValue || "", {
+                  shouldValidate: false,
+                });
+              }
+            }
           });
         });
+      }
 
+      setModalVisible(true);
+    },
+    [items, controller.subform]
+  );
+
+  // Handle deleting an item - memoized to prevent recreating on each render
+  const handleDeleteItem = useCallback(
+    (index: number) => {
+      Alert.alert("Delete Item", "Are you sure you want to delete this item?", [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          onPress: () => {
+            const newItems = [...items];
+            newItems.splice(index, 1);
+            setItems(newItems);
+          },
+          style: "destructive",
+        },
+      ]);
+    },
+    [items]
+  );
+
+  // Validate the subform - memoized to prevent recreating on each render
+  const validateSubForm = useCallback(
+    (values: any): boolean => {
+      // Clear previous validation errors
+      setValidationErrors([]);
+
+      // Skip validation if no schema is provided
+      if (!controller.subform?.formSchema) {
+        return true;
+      }
+
+      try {
+        const result = controller.subform.formSchema.safeParse(values);
+
+        if (result.success) {
+          return true;
+        } else {
+          // Store validation errors
+          setValidationErrors(result.error.issues);
+
+          // Show validation errors in the form
+          result.error.issues.forEach((issue: any) => {
+            const path = Array.isArray(issue.path) ? issue.path[0] : issue.path;
+            subformMethods.setError(path as string, {
+              type: "manual",
+              message: issue.message,
+            });
+          });
+
+          return false;
+        }
+      } catch (error) {
+        console.error("Validation error:", error);
         return false;
       }
-    } catch (error) {
-      console.error("Validation error:", error);
-      return false;
-    }
-  };
+    },
+    [controller.subform?.formSchema]
+  );
 
-  const handleSubmitSubForm = () => {
-    if (!validateSubForm()) {
+  // Function to collect form values - memoized to prevent recreating on each render
+  const collectFormValues = useCallback(() => {
+    // Dynamic handling for any field prefix pattern
+    if (controller.name) {
+      const formValues: { [key: string]: any } = {};
+      const controllerPrefix = `${controller.name.toLowerCase()}.`;
+
+      // Get all controller names
+      const controllerNames =
+        controller.subform?.controllers?.map((ctrl) => ctrl.name) || [];
+
+      // Check if any fields start with the controllerName prefix (e.g., 'venue.', 'ticket.', etc.)
+      // This handles any controller name, not just hardcoded "venue" or "ticket"
+      const prefixedFields = controllerNames.filter(
+        (name) => name && name.toLowerCase().startsWith(controllerPrefix)
+      );
+
+      // If we have fields that share a common prefix matching our controller name
+      if (
+        prefixedFields.length > 0 &&
+        prefixedFields.length === controllerNames.length
+      ) {
+        // All fields have the expected prefix
+        controller.subform?.controllers?.forEach((ctrl) => {
+          if (
+            ctrl.name &&
+            ctrl.name.toLowerCase().startsWith(controllerPrefix)
+          ) {
+            // Remove the prefix to get the actual field name
+            const prefixLength = controllerPrefix.length;
+            const fieldName = ctrl.name.substring(prefixLength);
+            formValues[fieldName] = subformMethods.getValues(ctrl.name);
+          }
+        });
+        return formValues;
+      }
+    }
+
+    // Default behavior when no specific prefix pattern is detected
+    // or for controllers without a name
+    const formValues: { [key: string]: any } = {};
+
+    // Helper function to process a controller and handle its nested properties
+    const processController = (ctrl: FormControllerProps) => {
+      if (!ctrl.name) return;
+
+      // Handle nested properties
+      const nameParts = ctrl.name.split(".");
+
+      if (nameParts.length === 1) {
+        // Simple property - no nesting
+        formValues[ctrl.name] = subformMethods.getValues(ctrl.name);
+      } else {
+        // Nested property (e.g., "venue.name" or any other nested structure)
+        let currentObj = formValues;
+
+        // Build the nested structure
+        for (let i = 0; i < nameParts.length - 1; i++) {
+          const part = nameParts[i];
+          if (!currentObj[part]) {
+            currentObj[part] = {};
+          }
+          currentObj = currentObj[part];
+        }
+
+        // Set the value at the deepest level
+        currentObj[nameParts[nameParts.length - 1]] = subformMethods.getValues(
+          ctrl.name
+        );
+      }
+    };
+
+    // Process all controllers based on form type
+    if (controller.subform?.formtype === "steper" && controller.subform.steps) {
+      // For stepped forms, collect from all steps
+      controller.subform.steps.forEach((step) => {
+        step.controllers?.forEach(processController);
+      });
+    } else if (controller.subform?.controllers) {
+      // For normal forms, collect from controllers
+      controller.subform.controllers.forEach(processController);
+    }
+
+    return formValues;
+  }, [controller.name, controller.subform, allowMultipleItems]);
+
+  // Handle submitting the subform
+  const handleSubmitSubForm = useCallback(() => {
+    // Get all values from the subform
+    const values = collectFormValues();
+
+    // Skip if validation fails
+    if (!validateSubForm(values)) {
       return;
     }
 
-    // Get current form values
-    const formValues = form.getValues();
+    // Flatten the structure if needed
+    const processedValues = flattenStructure(values);
 
-    let newItems;
     if (editingIndex !== null) {
-      // Edit existing item
-      newItems = [...items];
-      newItems[editingIndex] = formValues;
+      // Editing existing item
+      const newItems = [...items];
+      newItems[editingIndex] = processedValues;
+      setItems(newItems);
     } else {
-      // Add new item
+      // Adding new item
       if (!allowMultipleItems) {
-        newItems = [formValues];
+        // If not allowing multiple items, replace the existing item (if any)
+        setItems([processedValues]);
       } else {
-        newItems = [...items, formValues];
+        // For multiple items, add to the array
+        setItems([...items, processedValues]);
       }
     }
 
-    // Update local state
-    setItems(newItems);
-
-    // Close modal
+    // Close the modal
     setModalVisible(false);
-  };
+  }, [
+    collectFormValues,
+    validateSubForm,
+    flattenStructure,
+    editingIndex,
+    items,
+    allowMultipleItems,
+  ]);
 
-  // Get title for item display
-  const getItemTitle = (item: any, index: number): string => {
-    if (typeof controller.itemTitle === "function") {
-      const title = controller.itemTitle(item);
-      return title || `Item ${index + 1}`;
-    } else if (
-      typeof controller.itemTitle === "string" &&
-      item[controller.itemTitle]
-    ) {
-      return item[controller.itemTitle];
-    } else if (item.name) {
-      return item.name;
-    } else if (item.title) {
-      return item.title;
-    } else {
-      return `Item ${index + 1}`;
-    }
-  };
+  // Function to get the title for an item
+  const getItemTitle = useCallback(
+    (item: any, index: number): string => {
+      if (typeof controller.itemTitle === "function") {
+        const title = controller.itemTitle(item);
+        return title || `Item ${index + 1}`;
+      } else if (
+        typeof controller.itemTitle === "string" &&
+        item[controller.itemTitle]
+      ) {
+        return item[controller.itemTitle];
+      } else if (item.name) {
+        return item.name;
+      } else if (item.title) {
+        return item.title;
+      } else {
+        return `Item ${index + 1}`;
+      }
+    },
+    [controller.itemTitle]
+  );
 
-  // Helper to safely display nested object data
-  const renderItemDetail = (key: string, value: any, prefix = "") => {
-    const fullKey = prefix ? `${prefix}.${key}` : key;
+  // Function to close the modal without saving
+  const handleCancelModal = useCallback(() => {
+    setModalVisible(false);
+    // Reset any errors
+    setValidationErrors([]);
+  }, []);
 
-    if (value === null || value === undefined) {
-      return null;
-    }
-
-    if (typeof value === "object" && !Array.isArray(value)) {
-      return Object.entries(value).map(([nestedKey, nestedValue]) =>
-        renderItemDetail(nestedKey, nestedValue, fullKey)
+  // Render the SubForm content based on formtype - memoized to prevent recreating on each render
+  const renderSubForm = useMemo(() => {
+    if (!controller.subform) {
+      return (
+        <Text style={styles.errorText}>Subform configuration missing</Text>
       );
     }
 
-    // Format arrays nicely
-    if (Array.isArray(value)) {
-      const displayValue = value.length > 0 ? value.join(", ") : "none";
+    const subform = controller.subform;
+
+    if (subform.formtype === "steper" && subform.steps) {
+      return (
+        <StepsHandler
+          steps={subform.steps}
+          form={subformMethods}
+          onSubmit={() => {}} // No direct submit, use save button instead
+          hideStepsIndication={false}
+        />
+      );
+    } else {
+      // Default to normal form
+      return (
+        <NormalHandler
+          controllers={subform.controllers}
+          form={subformMethods}
+          onSubmit={() => {}} // No direct submit, use save button instead
+          isStepMode={true} // Hide the submit button in the normal handler
+        />
+      );
+    }
+  }, [controller.subform]);
+
+  // Helper to safely display nested object data - memoized to prevent recreating on each render
+  const renderItemDetail = useCallback(
+    (key: string, value: any, prefix = "") => {
+      const fullKey = prefix ? `${prefix}.${key}` : key;
+
+      if (value === null || value === undefined) {
+        return null;
+      }
+
+      if (typeof value === "object" && !Array.isArray(value)) {
+        return Object.entries(value).map(([nestedKey, nestedValue]) =>
+          renderItemDetail(nestedKey, nestedValue, fullKey)
+        );
+      }
+
+      // Format arrays nicely
+      if (Array.isArray(value)) {
+        const displayValue = value.length > 0 ? value.join(", ") : "none";
+        return (
+          <Text key={fullKey} style={styles.itemDetail}>
+            <Text style={styles.itemDetailLabel}>{key}: </Text>
+            {displayValue}
+          </Text>
+        );
+      }
+
+      // Skip ID fields
+      if (key === "id") return null;
+
+      // Show everything else
       return (
         <Text key={fullKey} style={styles.itemDetail}>
           <Text style={styles.itemDetailLabel}>{key}: </Text>
-          {displayValue}
+          {String(value)}
         </Text>
       );
-    }
-
-    // Skip ID fields
-    if (key === "id") return null;
-
-    // Date handling - convert date strings to readable format
-    if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
-      try {
-        const dateObj = new Date(value);
-        if (!isNaN(dateObj.getTime())) {
-          value = dateObj.toLocaleDateString();
-        }
-      } catch (e) {
-        // Not a valid date, continue with the string value
-      }
-    }
-
-    // Show everything else
-    return (
-      <Text key={fullKey} style={styles.itemDetail}>
-        <Text style={styles.itemDetailLabel}>{key}: </Text>
-        {String(value)}
-      </Text>
-    );
-  };
+    },
+    []
+  );
 
   return (
     <View style={styles.container}>
@@ -361,86 +717,74 @@ const SubFormController = ({
         </View>
       )}
 
-      {/* Main Add Button - only visible when there are no items or when multiple items are allowed */}
-      {(items.length === 0 || (allowMultipleItems && items.length > 0)) &&
-        items.length === 0 && (
-          <TouchableOpacity style={styles.addButton} onPress={handleAddItem}>
-            <Ionicons name="add" size={20} color="#FFFFFF" />
-            <Text style={styles.addButtonText}>
-              Add {controller.label || "Item"}
-            </Text>
-          </TouchableOpacity>
-        )}
-
-      {/* SubForm Modal - Only render when visible for better performance */}
-      {modalVisible && (
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={modalVisible}
-          onRequestClose={() => setModalVisible(false)}
+      {/* Main Add Button - only visible when there are no items or allowMultipleItems is true */}
+      {(items.length === 0 || (allowMultipleItems && items.length > 0)) && (
+        <TouchableOpacity
+          style={[
+            styles.addButton,
+            items.length > 0 && allowMultipleItems && styles.addButtonSmall,
+          ]}
+          onPress={handleAddItem}
         >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
-                  {editingIndex !== null
-                    ? `Edit ${controller.label || "Item"}`
-                    : `Add ${controller.label || "Item"}`}
-                </Text>
-                <TouchableOpacity onPress={() => setModalVisible(false)}>
-                  <Ionicons name="close" size={24} color="#000" />
-                </TouchableOpacity>
+          <Ionicons name="add" size={20} color="#FFFFFF" />
+          <Text style={styles.addButtonText}>
+            {items.length === 0
+              ? `Add ${controller.label || "Item"}`
+              : "Add Another"}
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      {/* SubForm Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={handleCancelModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {editingIndex !== null
+                  ? `Edit ${controller.label || "Item"}`
+                  : `Add ${controller.label || "Item"}`}
+              </Text>
+              <TouchableOpacity onPress={handleCancelModal}>
+                <Ionicons name="close" size={24} color="#000" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>{renderSubForm}</ScrollView>
+
+            {validationErrors.length > 0 && (
+              <View style={styles.validationErrorsContainer}>
+                {validationErrors.map((error, index) => (
+                  <Text key={index} style={styles.validationErrorText}>
+                    {`${error.path.join(".")} - ${error.message}`}
+                  </Text>
+                ))}
               </View>
+            )}
 
-              <ScrollView style={styles.modalBody}>
-                {controller.subform?.formtype === "steper" &&
-                controller.subform.steps ? (
-                  <SubFormStepsHandler
-                    steps={controller.subform.steps}
-                    form={form}
-                    onSubmit={() => {}}
-                    hideStepsIndication={false}
-                  />
-                ) : (
-                  <SubFormNormalHandler
-                    controllers={controller.subform?.controllers}
-                    form={form}
-                    onSubmit={() => {}}
-                    isStepMode={true}
-                  />
-                )}
-              </ScrollView>
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={handleCancelModal}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
 
-              {validationErrors.length > 0 && (
-                <View style={styles.validationErrorsContainer}>
-                  {validationErrors.map((error, index) => (
-                    <Text key={index} style={styles.validationErrorText}>
-                      {`${error.path.join(".")} - ${error.message}`}
-                    </Text>
-                  ))}
-                </View>
-              )}
-
-              <View style={styles.modalFooter}>
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={() => setModalVisible(false)}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.saveButton}
-                  onPress={handleSubmitSubForm}
-                >
-                  <Text style={styles.saveButtonText}>Save</Text>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={handleSubmitSubForm}
+              >
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
             </View>
           </View>
-        </Modal>
-      )}
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -534,6 +878,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 5,
     padding: 12,
+  },
+  addButtonSmall: {
+    marginTop: 10,
+    paddingVertical: 8,
   },
   addButtonText: {
     color: "white",

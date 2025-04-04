@@ -18,6 +18,8 @@ type PropsType = {
   stepPreview?: (value: any) => ReactNode;
   hideStepsIndication?: boolean;
   onSubmit: () => void;
+  // NEW: Callback for field changes
+  onFieldChange?: (name: string, value: any) => void;
 };
 
 const StepsHandler = ({
@@ -27,6 +29,7 @@ const StepsHandler = ({
   stepPreview,
   hideStepsIndication = false,
   onSubmit,
+  onFieldChange,
 }: PropsType) => {
   const [activeStep, setActiveStep] = useState<number>(0);
   const [activeSchema, setActiveSchema] = useState<any>(null);
@@ -173,6 +176,7 @@ const StepsHandler = ({
               form={form}
               onSubmit={() => {}}
               isStepMode={true}
+              onFieldChange={onFieldChange} // Pass the onFieldChange handler
             />
 
             <View style={styles.buttonContainer}>
@@ -193,7 +197,13 @@ const StepsHandler = ({
                 onPress={() => {
                   if (activeSchema) {
                     try {
-                      const result = activeSchema.safeParse(form.getValues());
+                      // Get form values but also get any tracked changes that might have happened
+                      const formValues = form.getValues();
+
+                      // Update the form before validation
+                      // This is especially important for date fields in the subform
+
+                      const result = activeSchema.safeParse(formValues);
                       if (result.success) {
                         handleNext();
                       } else {
