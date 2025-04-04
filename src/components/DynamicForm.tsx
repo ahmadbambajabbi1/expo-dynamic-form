@@ -59,8 +59,6 @@ const DynamicForm = ({
   formtype = "normal",
 }: DynamicFormProps): JSX.Element => {
   const [submitLoading, setSubmitLoading] = useState(false);
-  const [verifyingData, setVerifyingData] = useState<any>(null);
-  const [verify, setVerify] = useState(false);
   const [modal, setModal] = useState<ModalType>({
     open: false,
     data: [],
@@ -142,7 +140,7 @@ const DynamicForm = ({
         setSubmitLoading(false);
       }
     }
-    if (!handleSubmit && !verify) {
+    if (!handleSubmit) {
       setSubmitLoading(true);
       try {
         type HttpMethod = "get" | "post" | "put" | "delete";
@@ -161,8 +159,6 @@ const DynamicForm = ({
         if (res?.status >= 200 && res.status <= 299) {
           setToastMessage(res?.data?.message || "Success");
           if (res?.data?.succesType === "VERIFIED") {
-            setVerifyingData(res?.data?.data);
-            setVerify(true);
             if (apiOptions?.onVerify) {
               apiOptions?.onVerify(res?.data);
             }
@@ -175,7 +171,8 @@ const DynamicForm = ({
       } catch (error) {
         // catchErrorHandler(error, (data, type) => {
         const type = error?.response?.data?.errorType;
-        const data = error?.response?.data?.error;
+        const data =
+          error?.response?.data?.error || error?.response?.data?.errors;
         if (type === "FORM_ERROR") {
           if (Array.isArray(data)) {
             data.map((dt) => {
@@ -207,15 +204,6 @@ const DynamicForm = ({
     }
   }
 
-  if (verify) {
-    return (
-      <OttpInputHandler
-        apiOptions={apiOptions}
-        verifyingDataProps={verifyingData}
-      />
-    );
-  }
-
   return (
     <View style={styles.container}>
       {formtype === "steper" ? (
@@ -237,7 +225,7 @@ const DynamicForm = ({
       )}
 
       {/* Only show the submit button when NOT using step form type and not verifying */}
-      {!verify && formtype === "normal" && (
+      {formtype === "normal" && (
         <View style={styles.buttonContainer}>
           {tricker ? (
             tricker({ submitLoading, isValid: form.formState.isValid })
