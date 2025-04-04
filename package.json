@@ -1,6 +1,6 @@
 {
   "name": "expo-dynamic-form",
-  "version": "2.1.17",
+  "version": "2.1.15",
   "description": "A highly customizable dynamic form component for React Native and Expo applications",
   "main": "lib/commonjs/index.js",
   "module": "lib/module/index.js",
@@ -21,12 +21,12 @@
     "test": "jest",
     "typescript": "tsc --noEmit",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
-    "minify": "terser lib/commonjs/**/*.js -o lib/commonjs/**/*.js && terser lib/module/**/*.js -o lib/module/**/*.js",
+    "prepare": "bob build && npm run bundle",
     "release": "release-it --no-git.requireUpstream --no-npm.build",
     "example": "yarn --cwd example",
     "bootstrap": "yarn example && yarn install",
     "publish-npm": "npm version patch && npm publish",
-    "prepare": "bob build && npm run minify"
+    "bundle": "rollup -c"
   },
   "keywords": [
     "react-native",
