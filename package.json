@@ -21,13 +21,12 @@
     "test": "jest",
     "typescript": "tsc --noEmit",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
-    "prepare": "bob build && npm run bundle",
     "minify": "terser lib/commonjs/**/*.js -o lib/commonjs/**/*.js && terser lib/module/**/*.js -o lib/module/**/*.js",
     "release": "release-it --no-git.requireUpstream --no-npm.build",
     "example": "yarn --cwd example",
     "bootstrap": "yarn example && yarn install",
     "publish-npm": "npm version patch && npm publish",
-    "bundle": "rollup -c"
+    "prepare": "bob build && npm run minify"
   },
   "keywords": [
     "react-native",
