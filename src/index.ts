@@ -28,7 +28,5 @@ export {
   Toast,
   defaultTheme,
 };
-// "name": "expo-dynamic-form",
-// "version": "2.1.20",
 
 export default DynamicForm;
