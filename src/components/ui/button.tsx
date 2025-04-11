@@ -53,9 +53,8 @@ export const Button = ({
     };
 
     const disabledStyle = {
-      backgroundColor:
-        disabled && variant !== "outline" ? "#cccccc" : undefined,
-      borderColor: disabled && variant === "outline" ? "#cccccc" : undefined,
+      backgroundColor: disabled ? theme.colors.surface : undefined, // Use theme's surface color
+      borderColor: disabled ? theme.colors.border : undefined, // Use theme's border color
     };
 
     return [baseStyle, variantStyles[variant], disabledStyle, style];
@@ -63,7 +62,7 @@ export const Button = ({
 
   const getTextStyle = () => {
     const baseTextStyle = {
-      color: "#ffffff",
+      color: theme.colors.background, // Use theme's background as text color (contrast)
       fontSize: 16,
       fontWeight: "600" as const,
       textAlign: "center" as const,
@@ -71,10 +70,12 @@ export const Button = ({
 
     const variantTextStyles: Record<string, any> = {
       outline: { color: theme.colors.primary },
+      destructive: { color: theme.colors.background },
+      secondary: { color: theme.colors.background },
     };
 
     const disabledTextStyle = {
-      color: disabled ? "#999999" : undefined,
+      color: disabled ? theme.colors.textSecondary : undefined,
     };
 
     return [
@@ -93,7 +94,7 @@ export const Button = ({
       activeOpacity={0.7}
     >
       {loading ? (
-        <ActivityIndicator size="small" color="#ffffff" />
+        <ActivityIndicator size="small" color={theme.colors.background} />
       ) : typeof children === "string" ? (
         <Text style={getTextStyle()}>{children}</Text>
       ) : (
