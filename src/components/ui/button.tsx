@@ -7,7 +7,7 @@ import {
   TextStyle,
   ActivityIndicator,
 } from "react-native";
-import { useTheme } from "../../context/ThemeContext";
+import { useTheme } from "../../context/ThemeContext"; // Update path as needed
 
 type ButtonProps = {
   children: ReactNode;
@@ -30,7 +30,7 @@ export const Button = ({
 }: ButtonProps) => {
   const { theme } = useTheme();
 
-  const getButtonStyle = () => {
+  const getButtonStyle = (): StyleProp<ViewStyle> => {
     const baseStyle = {
       height: 48,
       paddingHorizontal: 16,
@@ -40,50 +40,66 @@ export const Button = ({
       flexDirection: "row" as const,
     };
 
-    const variantStyles: Record<string, any> = {
-      default: { backgroundColor: theme.colors.primary },
-      primary: { backgroundColor: theme.colors.primary },
-      secondary: { backgroundColor: theme.colors.secondary },
+    const variantStyles = {
+      default: {
+        backgroundColor: theme.colors.primary,
+      },
+      primary: {
+        backgroundColor: theme.colors.primary,
+      },
+      secondary: {
+        backgroundColor: theme.colors.secondary,
+      },
       outline: {
         backgroundColor: "transparent",
         borderWidth: 1,
         borderColor: theme.colors.primary,
       },
-      destructive: { backgroundColor: theme.colors.error },
+      destructive: {
+        backgroundColor: theme.colors.error,
+      },
     };
 
-    const disabledStyle = {
-      backgroundColor: disabled ? theme.colors.background : undefined, // Use theme's surface color
-      borderColor: disabled ? theme.colors.border : undefined, // Use theme's border color
-    };
+    const disabledStyle = disabled
+      ? {
+          backgroundColor: theme.colors.surface,
+          borderColor: theme.colors.border,
+        }
+      : {};
 
-    return [baseStyle, variantStyles[variant], disabledStyle, style];
+    return [baseStyle as any, variantStyles[variant], disabledStyle, style];
   };
 
-  const getTextStyle = () => {
-    const baseTextStyle = {
-      color: theme.colors.text, // Use theme's background as text color (contrast)
+  const getTextStyle = (): StyleProp<TextStyle> => {
+    const baseStyle = {
       fontSize: 16,
       fontWeight: "600" as const,
       textAlign: "center" as const,
     };
 
-    const variantTextStyles: Record<string, any> = {
-      outline: { color: theme.colors.primary },
-      destructive: { color: theme.colors.background },
-      secondary: { color: theme.colors.background },
+    const variantTextColors = {
+      default: theme.colors.background,
+      primary: theme.colors.background,
+      secondary: theme.colors.background,
+      outline: theme.colors.primary,
+      destructive: theme.colors.background,
     };
 
-    const disabledTextStyle = {
-      color: disabled ? theme.colors.textSecondary : undefined,
-    };
+    const disabledTextColor = disabled ? theme.colors.textSecondary : undefined;
 
     return [
-      baseTextStyle,
-      variantTextStyles[variant],
-      disabledTextStyle,
+      baseStyle,
+      { color: variantTextColors[variant] },
+      { color: disabledTextColor },
       textStyle,
     ];
+  };
+
+  const getLoaderColor = () => {
+    if (disabled) return theme.colors.textSecondary;
+    return variant === "outline"
+      ? theme.colors.primary
+      : theme.colors.background;
   };
 
   return (
@@ -94,7 +110,7 @@ export const Button = ({
       activeOpacity={0.7}
     >
       {loading ? (
-        <ActivityIndicator size="small" color={theme.colors.background} />
+        <ActivityIndicator size="small" color={getLoaderColor()} />
       ) : typeof children === "string" ? (
         <Text style={getTextStyle()}>{children}</Text>
       ) : (

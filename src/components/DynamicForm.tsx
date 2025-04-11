@@ -202,18 +202,18 @@ const DynamicFormContent = ({
             });
             showToast(errorMessage, "error");
           }
-        }
-        if (type === "MODAL") {
+        } else if (type === "MODAL") {
           setModal({
             open: true,
             data: data,
           });
+        } else {
+          const errorMessage =
+            error?.response?.data?.message ||
+            error?.response?.data?.msg ||
+            "Unknown error";
+          showToast(errorMessage, "error");
         }
-        const errorMessage =
-          error?.response?.data?.message ||
-          error?.response?.data?.msg ||
-          "Unknown error";
-        showToast(errorMessage, "error");
         if (apiOptions?.errorHandler) {
           apiOptions?.errorHandler(data, type);
         }
