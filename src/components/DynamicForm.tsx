@@ -207,6 +207,11 @@ const DynamicFormContent = ({
             data: data,
           });
         }
+        const errorMessage =
+          error?.response?.data?.message ||
+          error?.response?.data?.msg ||
+          "Unknown error";
+        showToast(errorMessage, "error");
         if (apiOptions?.errorHandler) {
           apiOptions?.errorHandler(data, type);
         }
@@ -264,23 +269,14 @@ const DynamicFormContent = ({
 };
 
 interface DynamicFormProps extends DynamicFormContentProps {
-  theme?: Theme;
+  theme?: Partial<Theme>;
 }
 
 const DynamicForm = (props: DynamicFormProps): JSX.Element => {
   const { theme = defaultTheme, ...otherProps } = props;
 
-  // Merge provided theme with default theme
-  const mergedTheme: Theme = {
-    colors: {
-      ...defaultTheme.colors,
-      ...(theme?.colors || {}),
-    },
-    shadows: theme?.shadows || defaultTheme.shadows,
-  };
-
   return (
-    <ThemeProvider theme={mergedTheme}>
+    <ThemeProvider theme={theme}>
       <ToastProvider>
         <DynamicFormContent {...otherProps} />
       </ToastProvider>

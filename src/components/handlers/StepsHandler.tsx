@@ -1,4 +1,3 @@
-// src/components/handlers/StepsHandler.tsx
 import React, { ReactNode, useState } from "react";
 import {
   View,
@@ -12,6 +11,7 @@ import { z } from "zod";
 import { PropsPropsType, StepsType } from "../../types";
 import NormalHandler from "./NormalHandler";
 import { useTheme } from "../../context/ThemeContext";
+import { useToast } from "../ui/Toast";
 
 type PropsType = {
   steps?: StepsType<any>[];
@@ -33,6 +33,7 @@ const StepsHandler = ({
   onFieldChange,
 }: PropsType) => {
   const { theme } = useTheme();
+  const { showToast } = useToast();
   const [activeStep, setActiveStep] = useState<number>(0);
   const [activeSchema, setActiveSchema] = useState<any>(null);
 
@@ -86,7 +87,7 @@ const StepsHandler = ({
         </Text>
       </View>
 
-      {hideStepsIndication && !hideStepsIndication && (
+      {!hideStepsIndication && (
         <View style={styles.stepperContainer}>
           {steps &&
             steps.map((step, index) => (
@@ -270,6 +271,14 @@ const StepsHandler = ({
                             message: issue.message,
                           });
                         });
+
+                        // Show toast with the first validation error
+                        if (result.error.issues.length > 0) {
+                          const firstIssue = result.error.issues[0];
+                          const errorMessage =
+                            firstIssue.message || "Validation error";
+                          showToast(errorMessage, "error");
+                        }
                       }
                     } catch (error) {
                       console.error("Schema validation error:", error);
