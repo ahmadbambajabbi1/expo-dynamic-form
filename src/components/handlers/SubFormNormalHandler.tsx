@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { View, StyleSheet, ScrollView, Text } from "react-native";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 import FormElementHandler from "./SubFormFormElementHandler";
 import { FormControllerProps, PropsPropsType } from "../../types";
+import { useTheme } from "../../context/ThemeContext";
 
 type SubFormNormalHandlerProps = {
   props?: PropsPropsType;
@@ -11,7 +12,6 @@ type SubFormNormalHandlerProps = {
   form: UseFormReturn<z.TypeOf<any>, any, undefined>;
   onSubmit: () => void;
   isStepMode?: boolean;
-  // Optional callback for field changes
   onFieldChange?: (name: string, value: any) => void;
 };
 
@@ -21,9 +21,55 @@ const SubFormNormalHandler = ({
   form,
   onFieldChange,
 }: SubFormNormalHandlerProps) => {
+  const { theme } = useTheme();
   const [controllersState, setControllersState] = useState<
     FormControllerProps[]
   >([]);
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        scrollView: {
+          flex: 1,
+          backgroundColor: theme.colors.background,
+        },
+        contentContainer: {
+          paddingBottom: 20,
+        },
+        controllerBase: {
+          width: "100%",
+        },
+        groupContainer: {
+          marginVertical: 10,
+          width: "100%",
+          borderRadius: 8,
+          overflow: "hidden",
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+          backgroundColor: theme.colors.surface,
+        },
+        groupHeader: {
+          padding: 10,
+          borderBottomWidth: 1,
+          borderBottomColor: theme.colors.border,
+          backgroundColor: theme.colors.surface,
+        },
+        groupHeaderTextContainer: {
+          marginLeft: 8,
+        },
+        groupHeaderText: {
+          fontWeight: "bold",
+          textTransform: "uppercase",
+          fontSize: 14,
+          color: theme.colors.text,
+        },
+        groupControllerBase: {
+          padding: 10,
+          backgroundColor: theme.colors.background,
+        },
+      }),
+    [theme]
+  );
 
   useEffect(() => {
     const filterControllers = (
@@ -113,42 +159,5 @@ const SubFormNormalHandler = ({
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    paddingBottom: 20,
-  },
-  controllerBase: {
-    width: "100%",
-  },
-  groupContainer: {
-    marginVertical: 10,
-    width: "100%",
-    borderRadius: 8,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-  },
-  groupHeader: {
-    padding: 10,
-    backgroundColor: "#f5f5f5",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-  },
-  groupHeaderTextContainer: {
-    marginLeft: 8,
-  },
-  groupHeaderText: {
-    fontWeight: "bold",
-    textTransform: "uppercase",
-    fontSize: 14,
-  },
-  groupControllerBase: {
-    padding: 10,
-  },
-});
 
 export default SubFormNormalHandler;

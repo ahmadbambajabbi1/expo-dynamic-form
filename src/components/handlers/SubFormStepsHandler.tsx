@@ -1,4 +1,4 @@
-import React, { ReactNode, useState } from "react";
+import React, { ReactNode, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,8 @@ import {
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 import { PropsPropsType, StepsType } from "../../types";
-import NormalHandler from "./NormalHandler";
+import NormalHandler from "./SubFormNormalHandler";
+import { useTheme } from "../../context/ThemeContext";
 
 type PropsType = {
   steps?: StepsType<any>[];
@@ -18,11 +19,10 @@ type PropsType = {
   stepPreview?: (value: any) => ReactNode;
   hideStepsIndication?: boolean;
   onSubmit: () => void;
-  // NEW: Callback for field changes
   onFieldChange?: (name: string, value: any) => void;
 };
 
-const StepsHandler = ({
+const SubFormStepsHandler = ({
   steps,
   form,
   props,
@@ -31,8 +31,185 @@ const StepsHandler = ({
   onSubmit,
   onFieldChange,
 }: PropsType) => {
+  const { theme } = useTheme();
   const [activeStep, setActiveStep] = useState<number>(0);
   const [activeSchema, setActiveSchema] = useState<any>(null);
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: theme.colors.background,
+        },
+        contentContainer: {
+          paddingBottom: 20,
+        },
+        headerContainer: {
+          flexDirection: "column",
+          alignItems: "center",
+          marginTop: 10,
+          marginBottom: 8,
+          position: "relative",
+          paddingHorizontal: 16,
+          width: "100%",
+        },
+        currentStepTitle: {
+          fontSize: 20,
+          fontWeight: "700",
+          textAlign: "center",
+          color: theme.colors.text,
+          marginTop: 50,
+        },
+        skipButton: {
+          position: "absolute",
+          right: 16,
+          top: 0,
+          padding: 8,
+          zIndex: 5,
+        },
+        skipButtonText: {
+          color: theme.colors.primary,
+          fontWeight: "600",
+          fontSize: 16,
+        },
+        stepperContainer: {
+          flexDirection: "row",
+          paddingHorizontal: 16,
+          paddingTop: 10,
+          paddingBottom: 5,
+          justifyContent: "center",
+          alignItems: "center",
+        },
+        stepNamesContainer: {
+          flexDirection: "row",
+          paddingHorizontal: 16,
+          marginBottom: 25,
+          justifyContent: "space-between",
+        },
+        stepName: {
+          fontSize: 14,
+          textAlign: "center",
+          flex: 1,
+          display: "none",
+        },
+        activeStepName: {
+          color: theme.colors.primary,
+          fontWeight: "bold",
+        },
+        inactiveStepName: {
+          color: theme.colors.textSecondary,
+        },
+        stepItem: {
+          alignItems: "center",
+          flexDirection: "row",
+          zIndex: 1,
+        },
+        stepIndicator: {
+          width: 30,
+          height: 30,
+          borderRadius: 15,
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 2,
+        },
+        activeStep: {
+          backgroundColor: theme.colors.primary,
+        },
+        completedStep: {
+          backgroundColor: theme.colors.primary,
+        },
+        inactiveStep: {
+          backgroundColor: theme.colors.border,
+        },
+        stepNumber: {
+          fontWeight: "bold",
+          fontSize: 14,
+        },
+        activeStepNumber: {
+          color: "white",
+        },
+        inactiveStepNumber: {
+          color: theme.colors.textSecondary,
+        },
+        connector: {
+          height: 2,
+          width: 30,
+          zIndex: 1,
+        },
+        activeConnector: {
+          backgroundColor: theme.colors.primary,
+        },
+        inactiveConnector: {
+          backgroundColor: theme.colors.border,
+        },
+        contentArea: {
+          flex: 1,
+          padding: 16,
+        },
+        stepContent: {
+          flex: 1,
+        },
+        previewContainer: {
+          flex: 1,
+        },
+        buttonContainer: {
+          flexDirection: "row",
+          justifyContent: "space-between",
+          marginTop: 20,
+          paddingHorizontal: 8,
+        },
+        backButtonTouchable: {
+          height: 50,
+          flex: 1,
+          marginRight: 8,
+          backgroundColor: theme.colors.surface,
+          justifyContent: "center",
+          alignItems: "center",
+          borderRadius: 5,
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+        },
+        backButtonText: {
+          color: theme.colors.text,
+          fontSize: 16,
+          fontWeight: "500",
+        },
+        nextButtonTouchable: {
+          height: 50,
+          flex: 1,
+          marginLeft: 8,
+          backgroundColor: theme.colors.primary,
+          justifyContent: "center",
+          alignItems: "center",
+          borderRadius: 5,
+        },
+        nextButtonText: {
+          color: "white",
+          fontSize: 16,
+          fontWeight: "500",
+        },
+        submitButtonTouchable: {
+          height: 50,
+          flex: 1,
+          marginLeft: 8,
+          backgroundColor: theme.colors.primary,
+          justifyContent: "center",
+          alignItems: "center",
+          borderRadius: 5,
+        },
+        submitButtonText: {
+          color: "white",
+          fontSize: 16,
+          fontWeight: "500",
+        },
+        fullWidthButton: {
+          marginLeft: 0,
+          flex: 1,
+        },
+      }),
+    [theme]
+  );
 
   const handleNext = () => {
     setActiveSchema(null);
@@ -78,7 +255,7 @@ const StepsHandler = ({
         <Text style={styles.currentStepTitle}>{currentStepName}</Text>
       </View>
 
-      {hideStepsIndication && !hideStepsIndication && (
+      {!hideStepsIndication && (
         <View style={styles.stepperContainer}>
           {steps &&
             steps.map((step, index) => (
@@ -176,7 +353,7 @@ const StepsHandler = ({
               form={form}
               onSubmit={() => {}}
               isStepMode={true}
-              onFieldChange={onFieldChange} // Pass the onFieldChange handler
+              onFieldChange={onFieldChange}
             />
 
             <View style={styles.buttonContainer}>
@@ -197,12 +374,7 @@ const StepsHandler = ({
                 onPress={() => {
                   if (activeSchema) {
                     try {
-                      // Get form values but also get any tracked changes that might have happened
                       const formValues = form.getValues();
-
-                      // Update the form before validation
-                      // This is especially important for date fields in the subform
-
                       const result = activeSchema.safeParse(formValues);
                       if (result.success) {
                         handleNext();
@@ -215,7 +387,6 @@ const StepsHandler = ({
                         });
                       }
                     } catch (error) {
-                      console.error("Schema validation error:", error);
                       handleNext();
                     }
                   } else {
@@ -235,175 +406,4 @@ const StepsHandler = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  contentContainer: {
-    paddingBottom: 20,
-  },
-  headerContainer: {
-    flexDirection: "column",
-    alignItems: "center",
-    marginTop: 10,
-    marginBottom: 8,
-    position: "relative",
-    paddingHorizontal: 16,
-    width: "100%",
-  },
-  currentStepTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    textAlign: "center",
-    color: "#333",
-    marginTop: 50,
-  },
-  skipButton: {
-    position: "absolute",
-    right: 16,
-    top: 0,
-    padding: 8,
-    zIndex: 5,
-  },
-  skipButtonText: {
-    color: "#0077CC",
-    fontWeight: "600",
-    fontSize: 16,
-  },
-  stepperContainer: {
-    flexDirection: "row",
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 5,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  stepNamesContainer: {
-    flexDirection: "row",
-    paddingHorizontal: 16,
-    marginBottom: 25,
-    justifyContent: "space-between",
-  },
-  stepName: {
-    fontSize: 14,
-    textAlign: "center",
-    flex: 1,
-    display: "none",
-  },
-  activeStepName: {
-    color: "#0077CC",
-    fontWeight: "bold",
-  },
-  inactiveStepName: {
-    color: "#666666",
-  },
-  stepItem: {
-    alignItems: "center",
-    flexDirection: "row",
-    zIndex: 1,
-  },
-  stepIndicator: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 2,
-  },
-  activeStep: {
-    backgroundColor: "#0077CC",
-  },
-  completedStep: {
-    backgroundColor: "#0077CC",
-  },
-  inactiveStep: {
-    backgroundColor: "#CCCCCC",
-  },
-  stepNumber: {
-    fontWeight: "bold",
-    fontSize: 14,
-  },
-  activeStepNumber: {
-    color: "white",
-  },
-  inactiveStepNumber: {
-    color: "#666666",
-  },
-  connector: {
-    height: 2,
-    width: 30,
-    zIndex: 1,
-  },
-  activeConnector: {
-    backgroundColor: "#0077CC",
-  },
-  inactiveConnector: {
-    backgroundColor: "#CCCCCC",
-  },
-  contentArea: {
-    flex: 1,
-    padding: 16,
-  },
-  stepContent: {
-    flex: 1,
-  },
-  previewContainer: {
-    flex: 1,
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 20,
-    paddingHorizontal: 8,
-  },
-  backButtonTouchable: {
-    height: 50,
-    flex: 1,
-    marginRight: 8,
-    backgroundColor: "#f9f9f9",
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-  },
-  backButtonText: {
-    color: "#333333",
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  nextButtonTouchable: {
-    height: 50,
-    flex: 1,
-    marginLeft: 8,
-    backgroundColor: "#0077CC",
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 5,
-  },
-  submitButtonTouchable: {
-    height: 50,
-    flex: 1,
-    marginLeft: 8,
-    backgroundColor: "#0077CC",
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 5,
-  },
-  nextButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  submitButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  fullWidthButton: {
-    marginLeft: 0,
-    flex: 1,
-  },
-});
-
-export default StepsHandler;
+export default SubFormStepsHandler;
