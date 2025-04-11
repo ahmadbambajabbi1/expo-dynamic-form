@@ -1,7 +1,9 @@
+// src/types/index.ts
 import { ReactNode } from "react";
 import { StyleProp, ViewStyle } from "react-native";
 import { UseFormReset, UseFormSetError } from "react-hook-form";
 import { z, ZodType } from "zod";
+import { Theme, ThemeColors } from "./theme";
 
 // Form controller types
 export type FormControllerTypesProps =
@@ -136,3 +138,6 @@ export type ModalType = {
   open: boolean;
   data: any;
 };
+
+// Re-export theme types
+export type { Theme, ThemeColors };

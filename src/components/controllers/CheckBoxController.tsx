@@ -1,9 +1,11 @@
+// src/components/controllers/CheckBoxController.tsx
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 import { FormControllerProps } from "../../types";
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../../context/ThemeContext";
 
 type PropsType = {
   items?: Array<{ value: string; label: string }>;
@@ -18,8 +20,8 @@ type PropsType = {
   };
 };
 
-// This component now only handles single checkboxes (not group-checkbox)
 const CheckBoxController = ({ form, checkBoxController, field }: PropsType) => {
+  const { theme } = useTheme();
   // Initialize state for checkbox
   const [isChecked, setIsChecked] = useState(field?.value === true);
 
@@ -55,12 +57,26 @@ const CheckBoxController = ({ form, checkBoxController, field }: PropsType) => {
       <View
         style={[
           styles.checkbox,
-          isChecked ? styles.checkboxChecked : styles.checkboxUnchecked,
+          isChecked
+            ? [
+                styles.checkboxChecked,
+                {
+                  backgroundColor: theme.colors.primary,
+                  borderColor: theme.colors.primary,
+                },
+              ]
+            : [
+                styles.checkboxUnchecked,
+                {
+                  backgroundColor: theme.colors.background,
+                  borderColor: theme.colors.border,
+                },
+              ],
         ]}
       >
         {isChecked && <Ionicons name="checkmark" size={16} color="#fff" />}
       </View>
-      <Text style={styles.checkboxLabel}>
+      <Text style={[styles.checkboxLabel, { color: theme.colors.text }]}>
         {checkBoxController?.label || ""}
       </Text>
     </TouchableOpacity>
@@ -84,14 +100,10 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   checkboxUnchecked: {
-    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#ccc",
   },
   checkboxChecked: {
-    backgroundColor: "#0077CC",
     borderWidth: 1,
-    borderColor: "#0077CC",
   },
   checkboxLabel: {
     fontSize: 16,

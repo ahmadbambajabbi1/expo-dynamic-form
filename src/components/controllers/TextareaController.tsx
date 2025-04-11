@@ -1,6 +1,8 @@
-import React from "react";
+// src/components/controllers/TextareaController.tsx
+import React, { useState } from "react";
 import { View, TextInput, StyleSheet } from "react-native";
 import { FormControllerProps } from "../../types";
+import { useTheme } from "../../context/ThemeContext";
 
 type PropsType = {
   field: {
@@ -13,18 +15,33 @@ type PropsType = {
 };
 
 const TextareaController = ({ controller, field }: PropsType) => {
+  const { theme } = useTheme();
+  const [isFocused, setIsFocused] = useState(false);
+
   return (
     <View style={styles.container}>
       <TextInput
         style={[
           styles.textarea,
-          { height: (controller.rows || 4) * 20 },
+          {
+            height: (controller.rows || 4) * 20,
+            color: theme.colors.text,
+            borderColor: isFocused ? theme.colors.primary : theme.colors.border,
+            backgroundColor: isFocused
+              ? `${theme.colors.primary}05`
+              : theme.colors.background,
+          },
           controller.style,
         ]}
         placeholder={controller.placeholder}
+        placeholderTextColor={theme.colors.textSecondary}
         value={field.value}
         onChangeText={field.onChange}
-        onBlur={field.onBlur}
+        onBlur={() => {
+          setIsFocused(false);
+          field.onBlur();
+        }}
+        onFocus={() => setIsFocused(true)}
         multiline
         textAlignVertical="top"
         numberOfLines={controller.rows || 4}
@@ -40,11 +57,9 @@ const styles = StyleSheet.create({
   },
   textarea: {
     borderWidth: 1,
-    borderColor: "#ccc",
     borderRadius: 5,
     padding: 10,
     width: "100%",
-    backgroundColor: "#fff",
     fontSize: 16,
     textAlignVertical: "top",
     minHeight: 80,

@@ -1,3 +1,4 @@
+// src/components/controllers/MultiSelectController.tsx
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -6,12 +7,14 @@ import {
   TouchableOpacity,
   Modal,
   FlatList,
+  ActivityIndicator,
 } from "react-native";
 import { UseFormReturn, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { FormControllerProps } from "../../types";
 import { Ionicons } from "@expo/vector-icons";
 import Axios from "../../utils/axiosConfig";
+import { useTheme } from "../../context/ThemeContext";
 
 type PropsType = {
   field: {
@@ -27,6 +30,8 @@ type PropsType = {
 type OptionType = { label: string; value: string };
 
 const MultiSelectController = ({ controller, field, form }: PropsType) => {
+  // const { theme } = useTheme();
+
   return controller.options === "from-api" ? (
     <ApiMultiSelectController
       controller={controller}
@@ -42,148 +47,12 @@ const MultiSelectController = ({ controller, field, form }: PropsType) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    width: "100%",
-  },
-  selectButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    padding: 10,
-    backgroundColor: "#fff",
-    height: 46,
-  },
-  selectButtonText: {
-    fontSize: 16,
-    color: "#000",
-    flex: 1,
-  },
-  placeholderText: {
-    color: "#999",
-  },
-  loadingText: {
-    color: "#666",
-    fontStyle: "italic",
-  },
-  chipsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: 8,
-  },
-  chip: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#e1f5fe",
-    borderRadius: 16,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  chipText: {
-    fontSize: 14,
-    color: "#0077CC",
-    marginRight: 4,
-  },
-  chipRemove: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: "80%",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  optionsList: {
-    maxHeight: 300,
-  },
-  optionItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  selectedOption: {
-    backgroundColor: "#f0f7ff",
-  },
-  optionText: {
-    fontSize: 16,
-  },
-  selectedOptionText: {
-    fontWeight: "bold",
-    color: "#0077CC",
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  checkboxUnchecked: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#ccc",
-  },
-  checkboxChecked: {
-    backgroundColor: "#0077CC",
-    borderWidth: 1,
-    borderColor: "#0077CC",
-  },
-  loadingContainer: {
-    padding: 20,
-    alignItems: "center",
-  },
-  modalFooter: {
-    padding: 15,
-    borderTopWidth: 1,
-    borderTopColor: "#eee",
-    alignItems: "center",
-  },
-  doneButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    backgroundColor: "#0077CC",
-    borderRadius: 5,
-  },
-  doneButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-});
-
-export default MultiSelectController;
-
 const StandardMultiSelectController = ({
   controller,
   field,
   form,
 }: PropsType) => {
+  const { theme } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<OptionType[]>([]);
 
@@ -258,32 +127,58 @@ const StandardMultiSelectController = ({
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        style={[styles.selectButton, controller.style]}
+        style={[
+          styles.selectButton,
+          {
+            borderColor: theme.colors.border,
+            backgroundColor: theme.colors.background,
+          },
+          controller.style,
+        ]}
         onPress={() => setModalVisible(true)}
       >
         <Text
           style={[
             styles.selectButtonText,
-            selectedOptions.length === 0 && styles.placeholderText,
+            { color: theme.colors.text },
+            selectedOptions.length === 0 && {
+              color: theme.colors.textSecondary,
+            },
           ]}
         >
           {selectedOptions.length > 0
             ? selectedOptions.map((opt) => opt.label).join(", ")
             : controller.placeholder || "Select options"}
         </Text>
-        <Ionicons name="chevron-down" size={20} color="#666" />
+        <Ionicons
+          name="chevron-down"
+          size={20}
+          color={theme.colors.textSecondary}
+        />
       </TouchableOpacity>
 
       {selectedOptions.length > 0 && (
         <View style={styles.chipsContainer}>
           {selectedOptions.map((option) => (
-            <View key={option.value} style={styles.chip}>
-              <Text style={styles.chipText}>{option.label}</Text>
+            <View
+              key={option.value}
+              style={[
+                styles.chip,
+                { backgroundColor: `${theme.colors.primary}15` },
+              ]}
+            >
+              <Text style={[styles.chipText, { color: theme.colors.primary }]}>
+                {option.label}
+              </Text>
               <TouchableOpacity
                 style={styles.chipRemove}
                 onPress={() => toggleOption(option)}
               >
-                <Ionicons name="close-circle" size={18} color="#666" />
+                <Ionicons
+                  name="close-circle"
+                  size={18}
+                  color={theme.colors.textSecondary}
+                />
               </TouchableOpacity>
             </View>
           ))}
@@ -297,13 +192,23 @@ const StandardMultiSelectController = ({
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.colors.background },
+            ]}
+          >
+            <View
+              style={[
+                styles.modalHeader,
+                { borderBottomColor: theme.colors.border },
+              ]}
+            >
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
                 {controller.label || "Select options"}
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#000" />
+                <Ionicons name="close" size={24} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
 
@@ -320,14 +225,21 @@ const StandardMultiSelectController = ({
                   <TouchableOpacity
                     style={[
                       styles.optionItem,
-                      isSelected && styles.selectedOption,
+                      { borderBottomColor: theme.colors.border },
+                      isSelected && {
+                        backgroundColor: `${theme.colors.primary}10`,
+                      },
                     ]}
                     onPress={() => toggleOption(item)}
                   >
                     <Text
                       style={[
                         styles.optionText,
-                        isSelected && styles.selectedOptionText,
+                        { color: theme.colors.text },
+                        isSelected && {
+                          color: theme.colors.primary,
+                          fontWeight: "bold",
+                        },
                       ]}
                     >
                       {item.label}
@@ -337,8 +249,14 @@ const StandardMultiSelectController = ({
                       style={[
                         styles.checkbox,
                         isSelected
-                          ? styles.checkboxChecked
-                          : styles.checkboxUnchecked,
+                          ? {
+                              backgroundColor: theme.colors.primary,
+                              borderColor: theme.colors.primary,
+                            }
+                          : {
+                              backgroundColor: theme.colors.background,
+                              borderColor: theme.colors.border,
+                            },
                       ]}
                     >
                       {isSelected && (
@@ -350,9 +268,17 @@ const StandardMultiSelectController = ({
               }}
             />
 
-            <View style={styles.modalFooter}>
+            <View
+              style={[
+                styles.modalFooter,
+                { borderTopColor: theme.colors.border },
+              ]}
+            >
               <TouchableOpacity
-                style={styles.doneButton}
+                style={[
+                  styles.doneButton,
+                  { backgroundColor: theme.colors.primary },
+                ]}
                 onPress={() => setModalVisible(false)}
               >
                 <Text style={styles.doneButtonText}>Done</Text>
@@ -366,6 +292,7 @@ const StandardMultiSelectController = ({
 };
 
 const ApiMultiSelectController = ({ controller, field, form }: PropsType) => {
+  const { theme } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
   const [optionsData, setOptionsData] = useState<OptionType[]>([]);
   const [selectedOptions, setSelectedOptions] = useState<OptionType[]>([]);
@@ -491,15 +418,28 @@ const ApiMultiSelectController = ({ controller, field, form }: PropsType) => {
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        style={[styles.selectButton, controller.style]}
+        style={[
+          styles.selectButton,
+          {
+            borderColor: theme.colors.border,
+            backgroundColor: theme.colors.background,
+          },
+          controller.style,
+        ]}
         onPress={() => setModalVisible(true)}
         disabled={loading}
       >
         <Text
           style={[
             styles.selectButtonText,
-            selectedOptions.length === 0 && styles.placeholderText,
-            loading && styles.loadingText,
+            { color: theme.colors.text },
+            selectedOptions.length === 0 && {
+              color: theme.colors.textSecondary,
+            },
+            loading && {
+              color: theme.colors.textSecondary,
+              fontStyle: "italic",
+            },
           ]}
         >
           {loading
@@ -508,19 +448,35 @@ const ApiMultiSelectController = ({ controller, field, form }: PropsType) => {
             ? selectedOptions.map((opt) => opt.label).join(", ")
             : controller.placeholder || "Select options"}
         </Text>
-        <Ionicons name="chevron-down" size={20} color="#666" />
+        <Ionicons
+          name="chevron-down"
+          size={20}
+          color={theme.colors.textSecondary}
+        />
       </TouchableOpacity>
 
       {selectedOptions.length > 0 && (
         <View style={styles.chipsContainer}>
           {selectedOptions.map((option) => (
-            <View key={option.value} style={styles.chip}>
-              <Text style={styles.chipText}>{option.label}</Text>
+            <View
+              key={option.value}
+              style={[
+                styles.chip,
+                { backgroundColor: `${theme.colors.primary}15` },
+              ]}
+            >
+              <Text style={[styles.chipText, { color: theme.colors.primary }]}>
+                {option.label}
+              </Text>
               <TouchableOpacity
                 style={styles.chipRemove}
                 onPress={() => toggleOption(option)}
               >
-                <Ionicons name="close-circle" size={18} color="#666" />
+                <Ionicons
+                  name="close-circle"
+                  size={18}
+                  color={theme.colors.textSecondary}
+                />
               </TouchableOpacity>
             </View>
           ))}
@@ -534,19 +490,37 @@ const ApiMultiSelectController = ({ controller, field, form }: PropsType) => {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.colors.background },
+            ]}
+          >
+            <View
+              style={[
+                styles.modalHeader,
+                { borderBottomColor: theme.colors.border },
+              ]}
+            >
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
                 {controller.label || "Select options"}
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#000" />
+                <Ionicons name="close" size={24} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
 
             {loading ? (
               <View style={styles.loadingContainer}>
-                <Text>Loading options...</Text>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+                <Text
+                  style={[
+                    styles.loadingText,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  Loading options...
+                </Text>
               </View>
             ) : (
               <FlatList
@@ -562,14 +536,21 @@ const ApiMultiSelectController = ({ controller, field, form }: PropsType) => {
                     <TouchableOpacity
                       style={[
                         styles.optionItem,
-                        isSelected && styles.selectedOption,
+                        { borderBottomColor: theme.colors.border },
+                        isSelected && {
+                          backgroundColor: `${theme.colors.primary}10`,
+                        },
                       ]}
                       onPress={() => toggleOption(item)}
                     >
                       <Text
                         style={[
                           styles.optionText,
-                          isSelected && styles.selectedOptionText,
+                          { color: theme.colors.text },
+                          isSelected && {
+                            color: theme.colors.primary,
+                            fontWeight: "bold",
+                          },
                         ]}
                       >
                         {item.label}
@@ -579,8 +560,14 @@ const ApiMultiSelectController = ({ controller, field, form }: PropsType) => {
                         style={[
                           styles.checkbox,
                           isSelected
-                            ? styles.checkboxChecked
-                            : styles.checkboxUnchecked,
+                            ? {
+                                backgroundColor: theme.colors.primary,
+                                borderColor: theme.colors.primary,
+                              }
+                            : {
+                                backgroundColor: theme.colors.background,
+                                borderColor: theme.colors.border,
+                              },
                         ]}
                       >
                         {isSelected && (
@@ -593,9 +580,17 @@ const ApiMultiSelectController = ({ controller, field, form }: PropsType) => {
               />
             )}
 
-            <View style={styles.modalFooter}>
+            <View
+              style={[
+                styles.modalFooter,
+                { borderTopColor: theme.colors.border },
+              ]}
+            >
               <TouchableOpacity
-                style={styles.doneButton}
+                style={[
+                  styles.doneButton,
+                  { backgroundColor: theme.colors.primary },
+                ]}
                 onPress={() => setModalVisible(false)}
               >
                 <Text style={styles.doneButtonText}>Done</Text>
@@ -607,3 +602,117 @@ const ApiMultiSelectController = ({ controller, field, form }: PropsType) => {
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    width: "100%",
+  },
+  selectButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderRadius: 5,
+    padding: 10,
+    height: 46,
+  },
+  selectButtonText: {
+    fontSize: 16,
+    flex: 1,
+  },
+  placeholderText: {},
+  loadingText: {
+    fontStyle: "italic",
+    marginTop: 10,
+    fontSize: 16,
+  },
+  chipsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 8,
+  },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 16,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  chipText: {
+    fontSize: 14,
+    marginRight: 4,
+  },
+  chipRemove: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: "80%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 15,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  optionsList: {
+    maxHeight: 300,
+  },
+  optionItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 15,
+    borderBottomWidth: 1,
+  },
+  selectedOption: {},
+  optionText: {
+    fontSize: 16,
+  },
+  selectedOptionText: {},
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+  },
+  checkboxUnchecked: {},
+  checkboxChecked: {},
+  loadingContainer: {
+    padding: 30,
+    alignItems: "center",
+  },
+  modalFooter: {
+    padding: 15,
+    borderTopWidth: 1,
+    alignItems: "center",
+  },
+  doneButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+  },
+  doneButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+});
+
+export default MultiSelectController;

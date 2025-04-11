@@ -1,5 +1,7 @@
+// src/components/controllers/ValueCounter.tsx
 import React from "react";
 import { Text, StyleSheet } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 
 type PropsType = {
   value: string;
@@ -7,20 +9,26 @@ type PropsType = {
 };
 
 const ValueCounter = ({ value, maximun }: PropsType) => {
+  const { theme } = useTheme();
   const count = maximun - (value ? value.length : 0);
+  const isNegative = count < 0;
 
   return (
-    <Text style={[styles.counter, count < 0 && styles.negative]}>{count}</Text>
+    <Text
+      style={[
+        styles.counter,
+        { color: theme.colors.textSecondary },
+        isNegative && { color: theme.colors.error },
+      ]}
+    >
+      {count}
+    </Text>
   );
 };
 
 const styles = StyleSheet.create({
   counter: {
     fontSize: 12,
-    color: "#666",
-  },
-  negative: {
-    color: "red",
   },
 });
 

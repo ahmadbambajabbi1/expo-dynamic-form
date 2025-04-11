@@ -14,10 +14,14 @@ import {
   StepsType,
   apiOptionsType,
   ModalType,
+  Theme,
 } from "../types";
+import { defaultTheme } from "../types/theme";
+import { ThemeProvider } from "../context/ThemeContext";
+import { ToastProvider, useToast } from "./ui/Toast";
 import DynamicAxios from "../utils/axiosConfig";
 
-interface DynamicFormProps {
+interface DynamicFormContentProps {
   controllers?: FormControllerProps[];
   steps?: StepsType<ZodSchema>[];
   submitBtn?: {
@@ -39,8 +43,7 @@ interface DynamicFormProps {
   ) => ReactNode;
 }
 
-// Avoid using React.FC due to incompatibilities with JSX in some TypeScript versions
-const DynamicForm = ({
+const DynamicFormContent = ({
   controllers,
   steps,
   submitBtn,
@@ -56,13 +59,13 @@ const DynamicForm = ({
   props,
   modalComponent,
   formtype = "normal",
-}: DynamicFormProps): JSX.Element => {
+}: DynamicFormContentProps): JSX.Element => {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [modal, setModal] = useState<ModalType>({
     open: false,
     data: [],
   });
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   type FormValues = z.infer<any>;
 
@@ -156,7 +159,10 @@ const DynamicForm = ({
           );
         }
         if (res?.status >= 200 && res.status <= 299) {
-          setToastMessage(res?.data?.message || "Success");
+          const successMessage =
+            res?.data?.message || res?.data?.msg || "Success";
+          showToast(successMessage, "success");
+
           if (res?.data?.succesType === "VERIFIED") {
             if (apiOptions?.onVerify) {
               apiOptions?.onVerify(res?.data);
@@ -168,23 +174,31 @@ const DynamicForm = ({
           reset();
         }
       } catch (error) {
-        // catchErrorHandler(error, (data, type) => {
         const type = error?.response?.data?.errorType;
         const data =
           error?.response?.data?.error || error?.response?.data?.errors;
+
         if (type === "FORM_ERROR") {
           if (Array.isArray(data)) {
-            data.map((dt) => {
+            data.forEach((dt) => {
+              const errorMessage = dt?.message || dt?.msg || "Unknown error";
               setError(dt?.path[0], {
                 type: "manual",
-                message: dt?.message,
+                message: errorMessage,
               });
+
+              // Show the first error message as a toast
+              if (data.indexOf(dt) === 0) {
+                showToast(errorMessage, "error");
+              }
             });
-          } else {
+          } else if (data) {
+            const errorMessage = data?.message || data?.msg || "Unknown error";
             setError(data?.path[0], {
               type: "manual",
-              message: data?.message,
+              message: errorMessage,
             });
+            showToast(errorMessage, "error");
           }
         }
         if (type === "MODAL") {
@@ -196,7 +210,6 @@ const DynamicForm = ({
         if (apiOptions?.errorHandler) {
           apiOptions?.errorHandler(data, type);
         }
-        // });
       } finally {
         setSubmitLoading(false);
       }
@@ -223,7 +236,6 @@ const DynamicForm = ({
         />
       )}
 
-      {/* Only show the submit button when NOT using step form type and not verifying */}
       {formtype === "normal" && (
         <View style={styles.buttonContainer}>
           {tricker ? (
@@ -247,13 +259,32 @@ const DynamicForm = ({
       )}
 
       {modal.open && modalComponent && modalComponent(modal, setModal)}
-
-      {toastMessage && (
-        <View style={styles.toast}>
-          {/* You could implement a Toast component here */}
-        </View>
-      )}
     </View>
+  );
+};
+
+interface DynamicFormProps extends DynamicFormContentProps {
+  theme?: Theme;
+}
+
+const DynamicForm = (props: DynamicFormProps): JSX.Element => {
+  const { theme = defaultTheme, ...otherProps } = props;
+
+  // Merge provided theme with default theme
+  const mergedTheme: Theme = {
+    colors: {
+      ...defaultTheme.colors,
+      ...(theme?.colors || {}),
+    },
+    shadows: theme?.shadows || defaultTheme.shadows,
+  };
+
+  return (
+    <ThemeProvider theme={mergedTheme}>
+      <ToastProvider>
+        <DynamicFormContent {...otherProps} />
+      </ToastProvider>
+    </ThemeProvider>
   );
 };
 
@@ -267,14 +298,6 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     marginTop: 8,
-  },
-  toast: {
-    position: "absolute",
-    bottom: 20,
-    alignSelf: "center",
-    backgroundColor: "rgba(0,0,0,0.7)",
-    padding: 10,
-    borderRadius: 5,
   },
 });
 

@@ -1,8 +1,10 @@
-import React, { useState, useCallback, useEffect, memo } from "react";
+// src/components/controllers/NumberInputController.tsx
+import React, { useState, useCallback, memo } from "react";
 import { View, TextInput, StyleSheet, Platform } from "react-native";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 import { FormControllerProps } from "../../types";
+import { useTheme } from "../../context/ThemeContext";
 
 type PropsType = {
   field: {
@@ -15,66 +17,50 @@ type PropsType = {
   form: UseFormReturn<z.TypeOf<any>, any, undefined>;
 };
 
-// Debounce function to limit how often the value updates
-const useDebounce = (value: string, delay: number) => {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-};
-
 const NumberInputControllerComponent = ({
   controller,
   field,
   form,
 }: PropsType) => {
+  const { theme } = useTheme();
+
   // Initialize with current value or empty string
   const [localValue, setLocalValue] = useState<string>(
     field.value !== undefined && field.value !== null ? String(field.value) : ""
   );
 
-  // Debounce the local value to reduce form updates
-  const debouncedValue = useDebounce(localValue, 300);
+  // Change handler - directly updates the form now without debounce
+  const handleChangeText = useCallback(
+    (text: string) => {
+      // Only allow digits and at most one decimal point
+      const filtered = text.replace(/[^0-9.]/g, "");
 
-  // Update form value when debounced value changes
-  useEffect(() => {
-    if (debouncedValue === "") {
-      field.onChange(null);
-      form.setValue(controller?.name || "", null, {
-        shouldValidate: true,
-        shouldDirty: true,
-      });
-    } else {
-      const numValue = Number(debouncedValue);
-      field.onChange(numValue);
-      form.setValue(controller?.name || "", numValue, {
-        shouldValidate: true,
-        shouldDirty: true,
-      });
-    }
-  }, [debouncedValue, field, form, controller?.name]);
+      // Handle multiple decimal points
+      const parts = filtered.split(".");
+      const formatted =
+        parts.length > 1 ? `${parts[0]}.${parts.slice(1).join("")}` : filtered;
 
-  // Memoized change handler
-  const handleChangeText = useCallback((text: string) => {
-    // Only allow digits and at most one decimal point
-    const filtered = text.replace(/[^0-9.]/g, "");
+      // Update local state
+      setLocalValue(formatted);
 
-    // Handle multiple decimal points
-    const parts = filtered.split(".");
-    const formatted =
-      parts.length > 1 ? `${parts[0]}.${parts.slice(1).join("")}` : filtered;
-
-    setLocalValue(formatted);
-  }, []);
+      // Update form value immediately
+      if (formatted === "") {
+        field.onChange(null);
+        form.setValue(controller?.name || "", null, {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
+      } else {
+        const numValue = Number(formatted);
+        field.onChange(numValue);
+        form.setValue(controller?.name || "", numValue, {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
+      }
+    },
+    [field, form, controller?.name]
+  );
 
   const [isFocused, setIsFocused] = useState(false);
 
@@ -83,6 +69,13 @@ const NumberInputControllerComponent = ({
       <TextInput
         style={[
           styles.input,
+          {
+            borderColor: isFocused ? theme.colors.primary : theme.colors.border,
+            backgroundColor: isFocused
+              ? `${theme.colors.primary}05`
+              : theme.colors.background,
+            color: theme.colors.text,
+          },
           isFocused && styles.inputFocused,
           controller.style,
         ]}
@@ -90,7 +83,7 @@ const NumberInputControllerComponent = ({
         onChangeText={handleChangeText}
         keyboardType="numeric"
         placeholder={controller.placeholder || "Enter a number"}
-        placeholderTextColor="#999"
+        placeholderTextColor={theme.colors.textSecondary}
         onFocus={() => setIsFocused(true)}
         onBlur={() => {
           setIsFocused(false);
@@ -116,16 +109,11 @@ const styles = StyleSheet.create({
   input: {
     height: 46,
     borderWidth: 1,
-    borderColor: "#ccc",
     borderRadius: 8,
     paddingHorizontal: 12,
     fontSize: 16,
-    backgroundColor: "#fff",
   },
-  inputFocused: {
-    borderColor: "#0077CC",
-    backgroundColor: "#f0f7ff",
-  },
+  inputFocused: {},
 });
 
 // Use memo to prevent unnecessary re-renders

@@ -1,3 +1,4 @@
+// src/components/controllers/SelectController.tsx
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -6,12 +7,14 @@ import {
   TouchableOpacity,
   Modal,
   FlatList,
+  ActivityIndicator,
 } from "react-native";
 import { UseFormReturn, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { FormControllerProps } from "../../types";
 import { Ionicons } from "@expo/vector-icons";
 import SelectAxios from "../../utils/axiosConfig";
+import { useTheme } from "../../context/ThemeContext";
 
 type PropsType = {
   field: {
@@ -25,6 +28,8 @@ type PropsType = {
 };
 
 const SelectController = ({ controller, field, form }: PropsType) => {
+  // const { theme } = useTheme();
+
   return controller?.options === "from-api" ? (
     <ApiOptionController controller={controller} field={field} form={form} />
   ) : (
@@ -38,6 +43,7 @@ const StandardSelectController = ({
   controller,
   field,
 }: Omit<PropsType, "form">) => {
+  const { theme } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedOption, setSelectedOption] = useState<{
     label: string;
@@ -68,20 +74,32 @@ const StandardSelectController = ({
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        style={[styles.selectButton, controller.style]}
+        style={[
+          styles.selectButton,
+          {
+            borderColor: theme.colors.border,
+            backgroundColor: theme.colors.background,
+          },
+          controller.style,
+        ]}
         onPress={() => setModalVisible(true)}
       >
         <Text
           style={[
             styles.selectButtonText,
-            !selectedOption && styles.placeholderText,
+            { color: theme.colors.text },
+            !selectedOption && { color: theme.colors.textSecondary },
           ]}
         >
           {selectedOption
             ? selectedOption.label
             : controller.placeholder || "Select an option"}
         </Text>
-        <Ionicons name="chevron-down" size={20} color="#666" />
+        <Ionicons
+          name="chevron-down"
+          size={20}
+          color={theme.colors.textSecondary}
+        />
       </TouchableOpacity>
 
       <Modal
@@ -91,13 +109,23 @@ const StandardSelectController = ({
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.colors.background },
+            ]}
+          >
+            <View
+              style={[
+                styles.modalHeader,
+                { borderBottomColor: theme.colors.border },
+              ]}
+            >
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
                 {controller.label || "Select an option"}
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#000" />
+                <Ionicons name="close" size={24} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
 
@@ -109,22 +137,32 @@ const StandardSelectController = ({
                 <TouchableOpacity
                   style={[
                     styles.optionItem,
-                    selectedOption?.value === item.value &&
+                    { borderBottomColor: theme.colors.border },
+                    selectedOption?.value === item.value && [
                       styles.selectedOption,
+                      { backgroundColor: `${theme.colors.primary}10` },
+                    ],
                   ]}
                   onPress={() => handleSelect(item)}
                 >
                   <Text
                     style={[
                       styles.optionText,
-                      selectedOption?.value === item.value &&
+                      { color: theme.colors.text },
+                      selectedOption?.value === item.value && [
                         styles.selectedOptionText,
+                        { color: theme.colors.primary, fontWeight: "bold" },
+                      ],
                     ]}
                   >
                     {item.label}
                   </Text>
                   {selectedOption?.value === item.value && (
-                    <Ionicons name="checkmark" size={20} color="#0077CC" />
+                    <Ionicons
+                      name="checkmark"
+                      size={20}
+                      color={theme.colors.primary}
+                    />
                   )}
                 </TouchableOpacity>
               )}
@@ -137,6 +175,7 @@ const StandardSelectController = ({
 };
 
 const ApiOptionController = ({ controller, field, form }: PropsType) => {
+  const { theme } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
   const [optionsData, setOptionsData] = useState<any[]>([]);
   const [selectedOption, setSelectedOption] = useState<{
@@ -210,15 +249,26 @@ const ApiOptionController = ({ controller, field, form }: PropsType) => {
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        style={[styles.selectButton, controller.style]}
+        style={[
+          styles.selectButton,
+          {
+            borderColor: theme.colors.border,
+            backgroundColor: theme.colors.background,
+          },
+          controller.style,
+        ]}
         onPress={() => setModalVisible(true)}
         disabled={loading}
       >
         <Text
           style={[
             styles.selectButtonText,
-            !selectedOption && styles.placeholderText,
-            loading && styles.loadingText,
+            { color: theme.colors.text },
+            !selectedOption && { color: theme.colors.textSecondary },
+            loading && {
+              color: theme.colors.textSecondary,
+              fontStyle: "italic",
+            },
           ]}
         >
           {loading
@@ -227,7 +277,11 @@ const ApiOptionController = ({ controller, field, form }: PropsType) => {
             ? selectedOption.label
             : controller.placeholder || "Select an option"}
         </Text>
-        <Ionicons name="chevron-down" size={20} color="#666" />
+        <Ionicons
+          name="chevron-down"
+          size={20}
+          color={theme.colors.textSecondary}
+        />
       </TouchableOpacity>
 
       <Modal
@@ -237,19 +291,32 @@ const ApiOptionController = ({ controller, field, form }: PropsType) => {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.colors.background },
+            ]}
+          >
+            <View
+              style={[
+                styles.modalHeader,
+                { borderBottomColor: theme.colors.border },
+              ]}
+            >
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
                 {controller.label || "Select an option"}
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#000" />
+                <Ionicons name="close" size={24} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
 
             {loading ? (
               <View style={styles.loadingContainer}>
-                <Text>Loading options...</Text>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+                <Text style={{ color: theme.colors.textSecondary }}>
+                  Loading options...
+                </Text>
               </View>
             ) : (
               <FlatList
@@ -260,22 +327,32 @@ const ApiOptionController = ({ controller, field, form }: PropsType) => {
                   <TouchableOpacity
                     style={[
                       styles.optionItem,
-                      selectedOption?.value === item.value &&
+                      { borderBottomColor: theme.colors.border },
+                      selectedOption?.value === item.value && [
                         styles.selectedOption,
+                        { backgroundColor: `${theme.colors.primary}10` },
+                      ],
                     ]}
                     onPress={() => handleSelect(item)}
                   >
                     <Text
                       style={[
                         styles.optionText,
-                        selectedOption?.value === item.value &&
+                        { color: theme.colors.text },
+                        selectedOption?.value === item.value && [
                           styles.selectedOptionText,
+                          { color: theme.colors.primary, fontWeight: "bold" },
+                        ],
                       ]}
                     >
                       {item.label}
                     </Text>
                     {selectedOption?.value === item.value && (
-                      <Ionicons name="checkmark" size={20} color="#0077CC" />
+                      <Ionicons
+                        name="checkmark"
+                        size={20}
+                        color={theme.colors.primary}
+                      />
                     )}
                   </TouchableOpacity>
                 )}
@@ -297,21 +374,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: "#ccc",
     borderRadius: 5,
     padding: 10,
-    backgroundColor: "#fff",
     height: 46,
   },
   selectButtonText: {
     fontSize: 16,
-    color: "#000",
   },
-  placeholderText: {
-    color: "#999",
-  },
+  placeholderText: {},
   loadingText: {
-    color: "#666",
     fontStyle: "italic",
   },
   modalOverlay: {
@@ -320,7 +391,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
-    backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: "80%",
@@ -331,7 +401,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
   },
   modalTitle: {
     fontSize: 18,
@@ -346,18 +415,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
   },
-  selectedOption: {
-    backgroundColor: "#f0f7ff",
-  },
+  selectedOption: {},
   optionText: {
     fontSize: 16,
   },
-  selectedOptionText: {
-    fontWeight: "bold",
-    color: "#0077CC",
-  },
+  selectedOptionText: {},
   loadingContainer: {
     padding: 20,
     alignItems: "center",

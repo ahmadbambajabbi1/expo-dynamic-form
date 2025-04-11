@@ -1,3 +1,4 @@
+// src/components/controllers/ListCreatorController.tsx
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -12,6 +13,7 @@ import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 import { FormControllerProps } from "../../types";
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../../context/ThemeContext";
 
 type PropsType = {
   field: {
@@ -25,6 +27,7 @@ type PropsType = {
 };
 
 const ListCreatorController = ({ controller, field, form }: PropsType) => {
+  const { theme } = useTheme();
   const [items, setItems] = useState<string[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -134,41 +137,86 @@ const ListCreatorController = ({ controller, field, form }: PropsType) => {
     <View style={styles.container}>
       <View style={styles.inputContainer}>
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              borderColor: theme.colors.border,
+              backgroundColor: theme.colors.background,
+              color: theme.colors.text,
+            },
+          ]}
           value={inputValue}
           onChangeText={setInputValue}
           placeholder={controller.placeholder || "Add new item..."}
+          placeholderTextColor={theme.colors.textSecondary}
           onKeyPress={handleKeyPress}
           onSubmitEditing={addItem}
           returnKeyType="done"
         />
-        <TouchableOpacity style={styles.addButton} onPress={addItem}>
+        <TouchableOpacity
+          style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
+          onPress={addItem}
+        >
           <Ionicons name="add" size={24} color="white" />
         </TouchableOpacity>
       </View>
 
-      {error && <Text style={styles.errorText}>{error}</Text>}
+      {error && (
+        <Text style={[styles.errorText, { color: theme.colors.error }]}>
+          {error}
+        </Text>
+      )}
 
       {controller.description && (
-        <Text style={styles.description}>{controller.description}</Text>
+        <Text
+          style={[styles.description, { color: theme.colors.textSecondary }]}
+        >
+          {controller.description}
+        </Text>
       )}
 
       {items.length > 0 ? (
-        <View style={styles.itemsContainer}>
+        <View
+          style={[
+            styles.itemsContainer,
+            {
+              borderColor: theme.colors.border,
+              backgroundColor: theme.colors.surface,
+            },
+          ]}
+        >
           <FlatList
             data={items}
             keyExtractor={(item, index) => `${item}-${index}`}
             renderItem={({ item, index }) => (
-              <View style={styles.itemRow}>
+              <View
+                style={[
+                  styles.itemRow,
+                  {
+                    borderColor: theme.colors.border,
+                    backgroundColor: theme.colors.background,
+                  },
+                ]}
+              >
                 <View style={styles.itemBullet}>
-                  <Text style={styles.bulletText}>•</Text>
+                  <Text
+                    style={[styles.bulletText, { color: theme.colors.primary }]}
+                  >
+                    •
+                  </Text>
                 </View>
-                <Text style={styles.itemText}>{item}</Text>
+                <Text style={[styles.itemText, { color: theme.colors.text }]}>
+                  {item}
+                </Text>
                 <TouchableOpacity
                   style={styles.removeButton}
                   onPress={() => removeItem(index)}
                 >
-                  <Ionicons name="close-circle" size={22} color="#FF3B30" />
+                  <Ionicons
+                    name="close-circle"
+                    size={22}
+                    color={theme.colors.error}
+                  />
                 </TouchableOpacity>
               </View>
             )}
@@ -176,8 +224,18 @@ const ListCreatorController = ({ controller, field, form }: PropsType) => {
           />
         </View>
       ) : (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>
+        <View
+          style={[
+            styles.emptyContainer,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+            },
+          ]}
+        >
+          <Text
+            style={[styles.emptyText, { color: theme.colors.textSecondary }]}
+          >
             {controller.emptyMessage || "No items added yet"}
           </Text>
         </View>
@@ -199,49 +257,39 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 46,
     borderWidth: 1,
-    borderColor: "#ccc",
     borderRadius: 5,
     paddingHorizontal: 12,
-    backgroundColor: "#fff",
     marginRight: 8,
     fontSize: 16,
   },
   addButton: {
     height: 46,
     width: 46,
-    backgroundColor: "#0077CC",
     borderRadius: 5,
     justifyContent: "center",
     alignItems: "center",
   },
   errorText: {
-    color: "#FF3B30",
     fontSize: 12,
     marginBottom: 8,
   },
   description: {
     fontSize: 12,
-    color: "#666",
     marginBottom: 8,
   },
   emptyContainer: {
     padding: 16,
-    backgroundColor: "#f9f9f9",
     borderRadius: 5,
     borderWidth: 1,
-    borderColor: "#eee",
     borderStyle: "dashed",
     alignItems: "center",
   },
   emptyText: {
-    color: "#999",
     fontSize: 14,
   },
   itemsContainer: {
     borderWidth: 1,
-    borderColor: "#eee",
     borderRadius: 5,
-    backgroundColor: "#f9f9f9",
     padding: 8,
     marginTop: 8,
   },
@@ -250,11 +298,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 8,
     paddingHorizontal: 8,
-    backgroundColor: "#fff",
     borderRadius: 5,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: "#eee",
   },
   itemBullet: {
     marginRight: 8,
@@ -262,12 +308,10 @@ const styles = StyleSheet.create({
   bulletText: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#0077CC",
   },
   itemText: {
     flex: 1,
     fontSize: 16,
-    color: "#333",
   },
   removeButton: {
     padding: 4,

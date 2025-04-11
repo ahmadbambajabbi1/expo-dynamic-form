@@ -1,3 +1,4 @@
+// src/components/ui/LoadingComponent.tsx
 import React from "react";
 import {
   ActivityIndicator,
@@ -6,6 +7,7 @@ import {
   StyleProp,
   ViewStyle,
 } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 
 type LoadingComponentProps = {
   size?: "small" | "large";
@@ -15,12 +17,17 @@ type LoadingComponentProps = {
 
 const LoadingComponent = ({
   size = "small",
-  color = "#ffffff",
+  color,
   style,
 }: LoadingComponentProps) => {
+  const { theme } = useTheme();
+
+  // Use provided color or default to white
+  const indicatorColor = color || theme.colors.secondary || "#ffffff";
+
   return (
     <View style={[styles.container, style]}>
-      <ActivityIndicator size={size} color={color} />
+      <ActivityIndicator size={size} color={indicatorColor} />
     </View>
   );
 };

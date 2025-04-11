@@ -1,3 +1,4 @@
+// src/components/controllers/CurrencyController.tsx
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -13,6 +14,7 @@ import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 import { FormControllerProps } from "../../types";
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../../context/ThemeContext";
 
 type PropsType = {
   field: {
@@ -55,10 +57,8 @@ const defaultCurrencies: CurrencyType[] = [
   { code: "AUD", name: "Australian Dollar", symbol: "A$", flag: "🇦🇺" },
 ];
 
-// API endpoint for fetching currencies (uncomment and use if needed)
-// const CURRENCY_API_URL = "https://your-currency-api.com/currencies";
-
 const CurrencyController = ({ controller, field, form }: PropsType) => {
+  const { theme } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [currencies, setCurrencies] = useState<CurrencyType[]>([]);
@@ -83,22 +83,7 @@ const CurrencyController = ({ controller, field, form }: PropsType) => {
       setLoading(true);
 
       try {
-        // Option 1: Use API (uncomment if you want to use an API)
-        /*
-        const response = await axios.get(CURRENCY_API_URL);
-        if (response.data) {
-          currencyCache = response.data;
-          setCurrencies(response.data);
-          setFilteredCurrencies(response.data);
-        } else {
-          // Fallback to default currencies if API fails
-          currencyCache = defaultCurrencies;
-          setCurrencies(defaultCurrencies);
-          setFilteredCurrencies(defaultCurrencies);
-        }
-        */
-
-        // Option 2: Use default currencies
+        // Use default currencies
         currencyCache = defaultCurrencies;
         setCurrencies(defaultCurrencies);
         setFilteredCurrencies(defaultCurrencies);
@@ -176,7 +161,14 @@ const CurrencyController = ({ controller, field, form }: PropsType) => {
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        style={[styles.currencyButton, controller.style]}
+        style={[
+          styles.currencyButton,
+          {
+            borderColor: theme.colors.border,
+            backgroundColor: theme.colors.background,
+          },
+          controller.style,
+        ]}
         onPress={() => setModalVisible(true)}
         disabled={loading}
       >
@@ -184,19 +176,37 @@ const CurrencyController = ({ controller, field, form }: PropsType) => {
           {selectedCurrency && (
             <>
               <Text style={styles.currencyFlag}>{selectedCurrency.flag}</Text>
-              <Text style={styles.currencyCode}>{selectedCurrency.code}</Text>
-              <Text style={styles.currencyName}>{selectedCurrency.name}</Text>
+              <Text style={[styles.currencyCode, { color: theme.colors.text }]}>
+                {selectedCurrency.code}
+              </Text>
+              <Text
+                style={[
+                  styles.currencyName,
+                  { color: theme.colors.textSecondary },
+                ]}
+              >
+                {selectedCurrency.name}
+              </Text>
             </>
           )}
           {!selectedCurrency && (
-            <Text style={styles.placeholderText}>
+            <Text
+              style={[
+                styles.placeholderText,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
               {loading
                 ? "Loading currencies..."
                 : controller.placeholder || "Select Currency"}
             </Text>
           )}
         </View>
-        <Ionicons name="chevron-down" size={20} color="#666" />
+        <Ionicons
+          name="chevron-down"
+          size={20}
+          color={theme.colors.textSecondary}
+        />
       </TouchableOpacity>
 
       <Modal
@@ -206,37 +216,62 @@ const CurrencyController = ({ controller, field, form }: PropsType) => {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.colors.background },
+            ]}
+          >
+            <View
+              style={[
+                styles.modalHeader,
+                { borderBottomColor: theme.colors.border },
+              ]}
+            >
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
                 {controller.label || "Select Currency"}
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#000" />
+                <Ionicons name="close" size={24} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.searchContainer}>
+            <View
+              style={[
+                styles.searchContainer,
+                {
+                  borderColor: theme.colors.border,
+                  backgroundColor: theme.colors.surface,
+                },
+              ]}
+            >
               <Ionicons
                 name="search"
                 size={20}
-                color="#666"
+                color={theme.colors.textSecondary}
                 style={styles.searchIcon}
               />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: theme.colors.text }]}
                 value={searchText}
                 onChangeText={setSearchText}
                 placeholder="Search for currency"
-                placeholderTextColor="#999"
+                placeholderTextColor={theme.colors.textSecondary}
                 clearButtonMode="while-editing"
               />
             </View>
 
             {loading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#0077CC" />
-                <Text style={styles.loadingText}>Loading currencies...</Text>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+                <Text
+                  style={[
+                    styles.loadingText,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  Loading currencies...
+                </Text>
               </View>
             ) : (
               <FlatList
@@ -249,26 +284,48 @@ const CurrencyController = ({ controller, field, form }: PropsType) => {
                     <TouchableOpacity
                       style={[
                         styles.currencyItem,
-                        isSelected && styles.selectedCurrencyItem,
+                        { borderBottomColor: theme.colors.border },
+                        isSelected && {
+                          backgroundColor: `${theme.colors.primary}10`,
+                        },
                       ]}
                       onPress={() => handleSelectCurrency(item)}
                     >
                       <View style={styles.currencyItemContent}>
                         <Text style={styles.currencyItemFlag}>{item.flag}</Text>
                         <View style={styles.currencyItemInfo}>
-                          <Text style={styles.currencyItemCode}>
+                          <Text
+                            style={[
+                              styles.currencyItemCode,
+                              { color: theme.colors.text },
+                            ]}
+                          >
                             {item.code}
                           </Text>
-                          <Text style={styles.currencyItemName}>
+                          <Text
+                            style={[
+                              styles.currencyItemName,
+                              { color: theme.colors.textSecondary },
+                            ]}
+                          >
                             {item.name}
                           </Text>
                         </View>
                       </View>
-                      <Text style={styles.currencyItemSymbol}>
+                      <Text
+                        style={[
+                          styles.currencyItemSymbol,
+                          { color: theme.colors.primary },
+                        ]}
+                      >
                         {item.symbol}
                       </Text>
                       {isSelected && (
-                        <Ionicons name="checkmark" size={20} color="#0077CC" />
+                        <Ionicons
+                          name="checkmark"
+                          size={20}
+                          color={theme.colors.primary}
+                        />
                       )}
                     </TouchableOpacity>
                   );
@@ -291,10 +348,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: "#ccc",
     borderRadius: 5,
     padding: 10,
-    backgroundColor: "#fff",
     height: 46,
   },
   selectedCurrencyContainer: {
@@ -309,16 +364,13 @@ const styles = StyleSheet.create({
   currencyCode: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#333",
     marginRight: 8,
   },
   currencyName: {
     fontSize: 14,
-    color: "#666",
     flex: 1,
   },
   placeholderText: {
-    color: "#999",
     fontSize: 16,
   },
   modalOverlay: {
@@ -327,7 +379,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
-    backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: "80%",
@@ -338,7 +389,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
   },
   modalTitle: {
     fontSize: 18,
@@ -348,11 +398,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#ddd",
     borderRadius: 5,
     margin: 10,
     paddingHorizontal: 10,
-    backgroundColor: "#f9f9f9",
   },
   searchIcon: {
     marginRight: 8,
@@ -369,7 +417,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: "#666",
   },
   currencyList: {
     maxHeight: 400,
@@ -380,10 +427,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  selectedCurrencyItem: {
-    backgroundColor: "#f0f7ff",
   },
   currencyItemContent: {
     flexDirection: "row",
@@ -400,17 +443,14 @@ const styles = StyleSheet.create({
   currencyItemCode: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#333",
   },
   currencyItemName: {
     fontSize: 14,
-    color: "#666",
   },
   currencyItemSymbol: {
     fontSize: 16,
     fontWeight: "bold",
     marginRight: 10,
-    color: "#0077CC",
   },
 });
 

@@ -2,12 +2,12 @@ import React, { ReactNode } from "react";
 import {
   TouchableOpacity,
   Text,
-  StyleSheet,
   StyleProp,
   ViewStyle,
   TextStyle,
   ActivityIndicator,
 } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 
 type ButtonProps = {
   children: ReactNode;
@@ -28,64 +28,61 @@ export const Button = ({
   loading = false,
   variant = "default",
 }: ButtonProps) => {
-  // Determine button styles based on variant
+  const { theme } = useTheme();
+
   const getButtonStyle = () => {
-    switch (variant) {
-      case "primary":
-        return [
-          styles.button,
-          styles.primaryButton,
-          disabled && styles.disabledButton,
-          style,
-        ];
-      case "secondary":
-        return [
-          styles.button,
-          styles.secondaryButton,
-          disabled && styles.disabledButton,
-          style,
-        ];
-      case "outline":
-        return [
-          styles.button,
-          styles.outlineButton,
-          disabled && styles.disabledOutlineButton,
-          style,
-        ];
-      case "destructive":
-        return [
-          styles.button,
-          styles.destructiveButton,
-          disabled && styles.disabledButton,
-          style,
-        ];
-      default:
-        return [
-          styles.button,
-          styles.defaultButton,
-          disabled && styles.disabledButton,
-          style,
-        ];
-    }
+    const baseStyle = {
+      height: 48,
+      paddingHorizontal: 16,
+      borderRadius: 8,
+      justifyContent: "center",
+      alignItems: "center",
+      flexDirection: "row" as const,
+    };
+
+    const variantStyles: Record<string, any> = {
+      default: { backgroundColor: theme.colors.primary },
+      primary: { backgroundColor: theme.colors.primary },
+      secondary: { backgroundColor: theme.colors.secondary },
+      outline: {
+        backgroundColor: "transparent",
+        borderWidth: 1,
+        borderColor: theme.colors.primary,
+      },
+      destructive: { backgroundColor: theme.colors.error },
+    };
+
+    const disabledStyle = {
+      backgroundColor:
+        disabled && variant !== "outline" ? "#cccccc" : undefined,
+      borderColor: disabled && variant === "outline" ? "#cccccc" : undefined,
+    };
+
+    return [baseStyle, variantStyles[variant], disabledStyle, style];
   };
 
-  // Determine text styles based on variant
   const getTextStyle = () => {
-    switch (variant) {
-      case "outline":
-        return [
-          styles.buttonText,
-          styles.outlineButtonText,
-          disabled && styles.disabledButtonText,
-          textStyle,
-        ];
-      default:
-        return [
-          styles.buttonText,
-          disabled && styles.disabledButtonText,
-          textStyle,
-        ];
-    }
+    const baseTextStyle = {
+      color: "#ffffff",
+      fontSize: 16,
+      fontWeight: "600" as const,
+      textAlign: "center" as const,
+    };
+
+    const variantTextStyles: Record<string, any> = {
+      outline: { color: theme.colors.primary },
+    };
+
+    const disabledTextStyle = {
+      color: disabled ? "#999999" : undefined,
+    };
+
+    return [
+      baseTextStyle,
+      variantTextStyles[variant],
+      disabledTextStyle,
+      textStyle,
+    ];
   };
 
   return (
@@ -105,50 +102,3 @@ export const Button = ({
     </TouchableOpacity>
   );
 };
-
-const styles = StyleSheet.create({
-  button: {
-    height: 48,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
-    flexDirection: "row",
-  },
-  defaultButton: {
-    backgroundColor: "#0077CC",
-  },
-  primaryButton: {
-    backgroundColor: "#0077CC",
-  },
-  secondaryButton: {
-    backgroundColor: "#6c757d",
-  },
-  outlineButton: {
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: "#0077CC",
-  },
-  destructiveButton: {
-    backgroundColor: "#dc3545",
-  },
-  disabledButton: {
-    backgroundColor: "#cccccc",
-  },
-  disabledOutlineButton: {
-    borderColor: "#cccccc",
-    backgroundColor: "transparent",
-  },
-  buttonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  outlineButtonText: {
-    color: "#0077CC",
-  },
-  disabledButtonText: {
-    color: "#999999",
-  },
-});

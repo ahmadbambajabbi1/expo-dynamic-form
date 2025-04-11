@@ -1,3 +1,4 @@
+// src/components/controllers/DateAndTimeContrller.tsx
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -14,6 +15,7 @@ import DateTimePicker, {
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 import { FormControllerProps } from "../../types";
+import { useTheme } from "../../context/ThemeContext";
 
 type DateMode = "date" | "time" | "datetime";
 
@@ -33,6 +35,7 @@ const DateTimeController = ({
   field,
   form,
 }: DateTimeControllerProps) => {
+  const { theme } = useTheme();
   const [showPicker, setShowPicker] = useState(false);
   const [mode, setMode] = useState<DateMode>(controller.dateMode || "date");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -282,6 +285,9 @@ const DateTimeController = ({
           is24Hour={false}
           display="default"
           onChange={onChange}
+          themeVariant={
+            theme.colors.background === "#FFFFFF" ? "light" : "dark"
+          }
         />
       );
     } catch (error) {
@@ -303,15 +309,34 @@ const DateTimeController = ({
           onRequestClose={() => setShowPicker(false)}
         >
           <View style={styles.centeredView}>
-            <View style={styles.modalView}>
-              <View style={styles.modalHeader}>
+            <View
+              style={[
+                styles.modalView,
+                { backgroundColor: theme.colors.background },
+              ]}
+            >
+              <View
+                style={[
+                  styles.modalHeader,
+                  { borderBottomColor: theme.colors.border },
+                ]}
+              >
                 <TouchableOpacity onPress={cancelSelection}>
-                  <Text style={styles.modalCancel}>Cancel</Text>
+                  <Text
+                    style={[
+                      styles.modalCancel,
+                      { color: theme.colors.textSecondary },
+                    ]}
+                  >
+                    Cancel
+                  </Text>
                 </TouchableOpacity>
 
                 {controller.dateMode === "datetime" && (
                   <View style={styles.stepIndicator}>
-                    <Text style={styles.stepText}>
+                    <Text
+                      style={[styles.stepText, { color: theme.colors.text }]}
+                    >
                       {mode === "date" ? "Select Date" : "Select Time"}
                     </Text>
                     <View style={styles.stepsDotsContainer}>
@@ -319,24 +344,42 @@ const DateTimeController = ({
                         style={[
                           styles.stepDot,
                           mode === "date"
-                            ? styles.activeStepDot
-                            : styles.completedStepDot,
+                            ? [
+                                styles.activeStepDot,
+                                { backgroundColor: theme.colors.primary },
+                              ]
+                            : [
+                                styles.completedStepDot,
+                                { backgroundColor: theme.colors.primary },
+                              ],
                         ]}
                       />
                       <View
                         style={[
                           styles.stepConnector,
                           mode === "time"
-                            ? styles.activeStepConnector
-                            : styles.inactiveStepConnector,
+                            ? [
+                                styles.activeStepConnector,
+                                { backgroundColor: theme.colors.primary },
+                              ]
+                            : [
+                                styles.inactiveStepConnector,
+                                { backgroundColor: theme.colors.border },
+                              ],
                         ]}
                       />
                       <View
                         style={[
                           styles.stepDot,
                           mode === "time"
-                            ? styles.activeStepDot
-                            : styles.inactiveStepDot,
+                            ? [
+                                styles.activeStepDot,
+                                { backgroundColor: theme.colors.primary },
+                              ]
+                            : [
+                                styles.inactiveStepDot,
+                                { backgroundColor: theme.colors.border },
+                              ],
                         ]}
                       />
                     </View>
@@ -354,7 +397,9 @@ const DateTimeController = ({
                     }
                   }}
                 >
-                  <Text style={styles.modalDone}>
+                  <Text
+                    style={[styles.modalDone, { color: theme.colors.primary }]}
+                  >
                     {controller.dateMode === "datetime" && mode === "date"
                       ? "Next"
                       : "Done"}
@@ -368,6 +413,9 @@ const DateTimeController = ({
                 display="spinner"
                 onChange={onChange}
                 style={styles.iosPicker}
+                themeVariant={
+                  theme.colors.background === "#FFFFFF" ? "light" : "dark"
+                }
               />
             </View>
           </View>
@@ -395,26 +443,41 @@ const DateTimeController = ({
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        style={[styles.inputContainer, controller.style]}
+        style={[
+          styles.inputContainer,
+          {
+            borderColor: theme.colors.border,
+            backgroundColor: theme.colors.background,
+          },
+          controller.style,
+        ]}
         onPress={showDatepicker}
       >
         <View style={styles.iconContainer}>
           <Ionicons
             name={(controller.icon as any) || getIconName()}
             size={20}
-            color="#666"
+            color={theme.colors.textSecondary}
           />
         </View>
 
         <Text
-          style={[styles.inputText, !selectedDate && styles.placeholderText]}
+          style={[
+            styles.inputText,
+            { color: theme.colors.text },
+            !selectedDate && { color: theme.colors.textSecondary },
+          ]}
         >
           {formatDate(selectedDate)}
         </Text>
 
         {selectedDate && (
           <TouchableOpacity style={styles.clearButton} onPress={clearSelection}>
-            <Ionicons name="close-circle" size={20} color="#999" />
+            <Ionicons
+              name="close-circle"
+              size={20}
+              color={theme.colors.textSecondary}
+            />
           </TouchableOpacity>
         )}
       </TouchableOpacity>
@@ -432,11 +495,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#ccc",
     borderRadius: 8,
     height: 48,
     paddingHorizontal: 12,
-    backgroundColor: "#fff",
   },
   iconContainer: {
     marginRight: 10,
@@ -444,11 +505,8 @@ const styles = StyleSheet.create({
   inputText: {
     flex: 1,
     fontSize: 16,
-    color: "#333",
   },
-  placeholderText: {
-    color: "#999",
-  },
+  placeholderText: {},
   clearButton: {
     padding: 4,
   },
@@ -458,7 +516,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalView: {
-    backgroundColor: "#f8f8f8",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: 20,
@@ -478,16 +535,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
   },
   modalCancel: {
     fontSize: 16,
-    color: "#777",
   },
   modalDone: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#0077CC",
   },
   stepIndicator: {
     alignItems: "center",
@@ -495,7 +549,6 @@ const styles = StyleSheet.create({
   stepText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#333",
     marginBottom: 6,
   },
   stepsDotsContainer: {
@@ -507,25 +560,15 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
   },
-  activeStepDot: {
-    backgroundColor: "#0077CC",
-  },
-  completedStepDot: {
-    backgroundColor: "#0077CC",
-  },
-  inactiveStepDot: {
-    backgroundColor: "#ccc",
-  },
+  activeStepDot: {},
+  completedStepDot: {},
+  inactiveStepDot: {},
   stepConnector: {
     width: 16,
     height: 2,
   },
-  activeStepConnector: {
-    backgroundColor: "#0077CC",
-  },
-  inactiveStepConnector: {
-    backgroundColor: "#ccc",
-  },
+  activeStepConnector: {},
+  inactiveStepConnector: {},
   iosPicker: {
     height: 200,
   },

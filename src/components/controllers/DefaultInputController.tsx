@@ -1,9 +1,11 @@
+// src/components/controllers/DefaultInputController.tsx
 import React, { useState } from "react";
 import { StyleSheet, TextInput, View, TouchableOpacity } from "react-native";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 import { Ionicons } from "@expo/vector-icons";
 import { FormControllerProps } from "../../types";
+import { useTheme } from "../../context/ThemeContext";
 
 type PropsType = {
   field: {
@@ -17,6 +19,7 @@ type PropsType = {
 };
 
 const DefaultInputController = ({ controller, field, form }: PropsType) => {
+  const { theme } = useTheme();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
@@ -26,8 +29,23 @@ const DefaultInputController = ({ controller, field, form }: PropsType) => {
 
   const inputStyle =
     controller.type === "checkbox"
-      ? [styles.input, styles.checkboxInput, controller.style]
-      : [styles.input, controller.style];
+      ? [
+          styles.input,
+          styles.checkboxInput,
+          {
+            color: theme.colors.text,
+            borderColor: theme.colors.border,
+          },
+          controller.style,
+        ]
+      : [
+          styles.input,
+          {
+            color: theme.colors.text,
+            borderColor: theme.colors.border,
+          },
+          controller.style,
+        ];
 
   const keyboardType = (() => {
     switch (controller.type) {
@@ -44,12 +62,27 @@ const DefaultInputController = ({ controller, field, form }: PropsType) => {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.inputContainer, isFocused && styles.inputFocused]}>
+      <View
+        style={[
+          styles.inputContainer,
+          isFocused && [
+            styles.inputFocused,
+            {
+              borderColor: theme.colors.primary,
+              backgroundColor: `${theme.colors.primary}10`,
+            },
+          ],
+          {
+            borderColor: theme.colors.border,
+            backgroundColor: theme.colors.surface,
+          },
+        ]}
+      >
         {controller.icon && (
           <Ionicons
             name={controller.icon as any}
             size={20}
-            color="#9CA3AF"
+            color={theme.colors.textSecondary}
             style={styles.icon}
           />
         )}
@@ -57,6 +90,7 @@ const DefaultInputController = ({ controller, field, form }: PropsType) => {
         <TextInput
           style={inputStyle}
           placeholder={controller.placeholder}
+          placeholderTextColor={theme.colors.textSecondary}
           value={
             typeof field.value === "string"
               ? field.value
@@ -80,7 +114,6 @@ const DefaultInputController = ({ controller, field, form }: PropsType) => {
           maxLength={controller.maximun}
           multiline={controller.rows ? true : false}
           numberOfLines={controller.rows || 1}
-          placeholderTextColor="#9CA3AF"
         />
 
         {controller.type === "password" && (
@@ -91,7 +124,7 @@ const DefaultInputController = ({ controller, field, form }: PropsType) => {
             <Ionicons
               name={isPasswordVisible ? "eye-off" : "eye"}
               size={20}
-              color="#9CA3AF"
+              color={theme.colors.textSecondary}
             />
           </TouchableOpacity>
         )}
@@ -109,18 +142,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E5E7EB",
     borderRadius: 8,
-    backgroundColor: "#F9FAFB",
     height: 50,
   },
-  inputFocused: {
-    borderColor: "#6366F1",
-    backgroundColor: "#FFFFFF",
-  },
-  inputError: {
-    borderColor: "#EF4444",
-  },
+  inputFocused: {},
+  inputError: {},
   icon: {
     marginLeft: 12,
   },
@@ -128,7 +154,6 @@ const styles = StyleSheet.create({
     flex: 1,
     height: "100%",
     paddingHorizontal: 12,
-    color: "#1F2937",
     fontSize: 16,
     backgroundColor: "transparent",
     borderWidth: 0,
@@ -141,7 +166,6 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   errorText: {
-    color: "#EF4444",
     fontSize: 12,
     marginTop: 4,
   },

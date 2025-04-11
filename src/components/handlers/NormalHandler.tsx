@@ -1,9 +1,11 @@
+// src/components/handlers/NormalHandler.tsx
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, ScrollView, Text } from "react-native";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 import FormElementHandler from "./FormElementHandler";
 import { FormControllerProps, PropsPropsType } from "../../types";
+import { useTheme } from "../../context/ThemeContext";
 
 type PropsType = {
   props?: PropsPropsType;
@@ -11,7 +13,6 @@ type PropsType = {
   form: UseFormReturn<z.TypeOf<any>, any, undefined>;
   onSubmit: () => void;
   isStepMode?: boolean;
-  // NEW: Add callback for field changes
   onFieldChange?: (name: string, value: any) => void;
 };
 
@@ -21,6 +22,7 @@ const NormalHandler = ({
   form,
   onFieldChange,
 }: PropsType) => {
+  const { theme } = useTheme();
   const [controllersState, setControllersState] = useState<
     FormControllerProps[]
   >([]);
@@ -69,12 +71,32 @@ const NormalHandler = ({
             return (
               <View
                 key={`${index}-${controller?.groupName || controller?.type}`}
-                style={[styles.groupContainer, controller?.style]}
+                style={[
+                  styles.groupContainer,
+                  {
+                    borderColor: theme.colors.border,
+                    backgroundColor: theme.colors.surface,
+                  },
+                  controller?.style,
+                ]}
               >
                 {controller?.groupName && (
-                  <View style={styles.groupHeader}>
+                  <View
+                    style={[
+                      styles.groupHeader,
+                      {
+                        backgroundColor: theme.colors.surface,
+                        borderBottomColor: theme.colors.border,
+                      },
+                    ]}
+                  >
                     <View style={styles.groupHeaderTextContainer}>
-                      <Text style={styles.groupHeaderText}>
+                      <Text
+                        style={[
+                          styles.groupHeaderText,
+                          { color: theme.colors.text },
+                        ]}
+                      >
                         {controller?.groupName}
                       </Text>
                     </View>
@@ -92,7 +114,7 @@ const NormalHandler = ({
                       controller={groupController}
                       form={form}
                       props={props}
-                      onFieldChange={onFieldChange} // Pass the field change callback
+                      onFieldChange={onFieldChange}
                     />
                   ))}
                 </View>
@@ -105,7 +127,7 @@ const NormalHandler = ({
               controller={controller}
               form={form}
               props={props}
-              onFieldChange={onFieldChange} // Pass the field change callback
+              onFieldChange={onFieldChange}
             />
           );
         })}
@@ -130,13 +152,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#e0e0e0",
   },
   groupHeader: {
     padding: 10,
-    backgroundColor: "#f5f5f5",
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
   },
   groupHeaderTextContainer: {
     marginLeft: 8,
@@ -152,14 +171,12 @@ const styles = StyleSheet.create({
   submitButton: {
     marginTop: 16,
     marginHorizontal: 10,
-    backgroundColor: "#0077CC",
     height: 50,
     borderRadius: 5,
     justifyContent: "center",
     alignItems: "center",
   },
   submitButtonText: {
-    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
   },

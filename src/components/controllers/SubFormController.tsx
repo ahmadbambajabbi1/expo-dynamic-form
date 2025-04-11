@@ -21,6 +21,7 @@ import { Ionicons } from "@expo/vector-icons";
 import NormalHandler from "../handlers/SubFormNormalHandler";
 import StepsHandler from "../handlers/SubFormStepsHandler";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTheme } from "../../context/ThemeContext";
 
 type SubFormControllerProps = {
   field: {
@@ -49,9 +50,18 @@ const SubFormController = ({
   field,
   form: parentForm,
 }: SubFormControllerProps) => {
+  const { theme } = useTheme();
+
   // Use refs to avoid unnecessary re-renders
-  const subformRef = useRef(null);
   const isInitializedRef = useRef(false);
+
+  // Create form methods for the subform - only once
+  const subformMethods = useForm({
+    resolver: controller.subform?.formSchema
+      ? zodResolver(controller.subform.formSchema)
+      : undefined,
+    mode: "onBlur",
+  });
 
   // Component state
   const [modalVisible, setModalVisible] = useState(false);
@@ -62,19 +72,7 @@ const SubFormController = ({
   // Check if multiple items are allowed
   const allowMultipleItems = controller.addMoreVisible === true;
 
-  // Setup an isolated subform
-  const subformSchema = controller.subform?.formSchema || z.any();
-  const subformMethods = useForm({
-    resolver: zodResolver(subformSchema),
-    mode: "onBlur",
-  });
-
-  // Save subform ref
-  useEffect(() => {
-    subformRef.current = subformMethods;
-  }, [subformMethods]);
-
-  // Function to fix any existing items in the data - memoized to avoid unnecessary recalculations
+  // Prevent infinite re-renders by memoizing the flatten function
   const flattenStructure = useCallback(
     (item: any) => {
       if (!item || typeof item !== "object") return item;
@@ -83,10 +81,7 @@ const SubFormController = ({
       const controllerBase = controller.name || "";
 
       // Look for any nested objects that match the controller name pattern
-      // This will handle cases like "ticket", "venue", or any custom name
       for (const key in item) {
-        // Check if the item has a property matching the controller name
-        // or if it has a common prefix/naming pattern
         if (
           (key === controllerBase ||
             key.toLowerCase() === controllerBase.toLowerCase()) &&
@@ -94,7 +89,6 @@ const SubFormController = ({
           item[key] !== null
         ) {
           // Found a nested object that matches our controller name
-          // Move all properties from the nested object to the root level
           const result = { ...item[key] };
 
           // Copy any other properties that weren't under the nested key
@@ -115,21 +109,18 @@ const SubFormController = ({
     [controller.name]
   );
 
-  // Initialize from existing value - only runs once
+  // Initialize from existing value once
   useEffect(() => {
     if (isInitializedRef.current) return;
     isInitializedRef.current = true;
 
     if (field.value) {
       try {
-        // Handle array data
         if (Array.isArray(field.value)) {
           // Fix each item in the array
           const fixedItems = field.value.map((item) => flattenStructure(item));
           setItems(fixedItems);
-        }
-        // Handle object data
-        else if (
+        } else if (
           typeof field.value === "object" &&
           field.value !== null &&
           !Array.isArray(field.value)
@@ -149,9 +140,7 @@ const SubFormController = ({
               shouldValidate: true,
             });
           }
-        }
-        // Handle JSON string
-        else if (typeof field.value === "string") {
+        } else if (typeof field.value === "string") {
           try {
             const parsedItems = JSON.parse(field.value);
             if (Array.isArray(parsedItems)) {
@@ -200,7 +189,6 @@ const SubFormController = ({
           }
         }
       } catch (error) {
-        console.error("Error initializing items:", error);
         setItems([]);
       }
     }
@@ -248,7 +236,7 @@ const SubFormController = ({
     }
   }, [items]);
 
-  // Handle adding a new item - memoized to prevent recreating on each render
+  // Handle adding a new item
   const handleAddItem = useCallback(() => {
     setEditingIndex(null);
     setValidationErrors([]);
@@ -286,7 +274,7 @@ const SubFormController = ({
     setModalVisible(true);
   }, [controller.subform]);
 
-  // Handle editing an existing item - memoized to prevent recreating on each render
+  // Handle editing an existing item
   const handleEditItem = useCallback(
     (index: number) => {
       setEditingIndex(index);
@@ -369,7 +357,7 @@ const SubFormController = ({
     [items, controller.subform]
   );
 
-  // Handle deleting an item - memoized to prevent recreating on each render
+  // Handle deleting an item
   const handleDeleteItem = useCallback(
     (index: number) => {
       Alert.alert("Delete Item", "Are you sure you want to delete this item?", [
@@ -391,7 +379,7 @@ const SubFormController = ({
     [items]
   );
 
-  // Validate the subform - memoized to prevent recreating on each render
+  // Validate the subform
   const validateSubForm = useCallback(
     (values: any): boolean => {
       // Clear previous validation errors
@@ -430,7 +418,7 @@ const SubFormController = ({
     [controller.subform?.formSchema]
   );
 
-  // Function to collect form values - memoized to prevent recreating on each render
+  // Function to collect form values
   const collectFormValues = useCallback(() => {
     // Dynamic handling for any field prefix pattern
     if (controller.name) {
@@ -442,7 +430,6 @@ const SubFormController = ({
         controller.subform?.controllers?.map((ctrl) => ctrl.name) || [];
 
       // Check if any fields start with the controllerName prefix (e.g., 'venue.', 'ticket.', etc.)
-      // This handles any controller name, not just hardcoded "venue" or "ticket"
       const prefixedFields = controllerNames.filter(
         (name) => name && name.toLowerCase().startsWith(controllerPrefix)
       );
@@ -469,7 +456,6 @@ const SubFormController = ({
     }
 
     // Default behavior when no specific prefix pattern is detected
-    // or for controllers without a name
     const formValues: { [key: string]: any } = {};
 
     // Helper function to process a controller and handle its nested properties
@@ -514,7 +500,7 @@ const SubFormController = ({
     }
 
     return formValues;
-  }, [controller.name, controller.subform, allowMultipleItems]);
+  }, [controller.name, controller.subform]);
 
   // Handle submitting the subform
   const handleSubmitSubForm = useCallback(() => {
@@ -581,15 +567,16 @@ const SubFormController = ({
   // Function to close the modal without saving
   const handleCancelModal = useCallback(() => {
     setModalVisible(false);
-    // Reset any errors
     setValidationErrors([]);
   }, []);
 
-  // Render the SubForm content based on formtype - memoized to prevent recreating on each render
+  // Render the SubForm content based on formtype
   const renderSubForm = useMemo(() => {
     if (!controller.subform) {
       return (
-        <Text style={styles.errorText}>Subform configuration missing</Text>
+        <Text style={[styles.errorText, { color: theme.colors.error }]}>
+          Subform configuration missing
+        </Text>
       );
     }
 
@@ -615,9 +602,9 @@ const SubFormController = ({
         />
       );
     }
-  }, [controller.subform]);
+  }, [controller.subform, theme.colors.error]);
 
-  // Helper to safely display nested object data - memoized to prevent recreating on each render
+  // Helper to safely display nested object data
   const renderItemDetail = useCallback(
     (key: string, value: any, prefix = "") => {
       const fullKey = prefix ? `${prefix}.${key}` : key;
@@ -636,8 +623,18 @@ const SubFormController = ({
       if (Array.isArray(value)) {
         const displayValue = value.length > 0 ? value.join(", ") : "none";
         return (
-          <Text key={fullKey} style={styles.itemDetail}>
-            <Text style={styles.itemDetailLabel}>{key}: </Text>
+          <Text
+            key={fullKey}
+            style={[styles.itemDetail, { color: theme.colors.text }]}
+          >
+            <Text
+              style={[
+                styles.itemDetailLabel,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
+              {key}:
+            </Text>{" "}
             {displayValue}
           </Text>
         );
@@ -648,13 +645,23 @@ const SubFormController = ({
 
       // Show everything else
       return (
-        <Text key={fullKey} style={styles.itemDetail}>
-          <Text style={styles.itemDetailLabel}>{key}: </Text>
+        <Text
+          key={fullKey}
+          style={[styles.itemDetail, { color: theme.colors.text }]}
+        >
+          <Text
+            style={[
+              styles.itemDetailLabel,
+              { color: theme.colors.textSecondary },
+            ]}
+          >
+            {key}:
+          </Text>{" "}
           {String(value)}
         </Text>
       );
     },
-    []
+    [theme]
   );
 
   return (
@@ -663,9 +670,20 @@ const SubFormController = ({
       {items.length > 0 ? (
         <View style={styles.itemsContainer}>
           {items.map((item, index) => (
-            <View key={index} style={styles.itemCard}>
+            <View
+              key={index}
+              style={[
+                styles.itemCard,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                },
+              ]}
+            >
               <View style={styles.itemContent}>
-                <Text style={styles.itemTitle}>
+                <Text
+                  style={[styles.itemTitle, { color: theme.colors.primary }]}
+                >
                   {getItemTitle(item, index)}
                 </Text>
                 {/* Use custom display function if provided */}
@@ -686,13 +704,17 @@ const SubFormController = ({
                   style={styles.editButton}
                   onPress={() => handleEditItem(index)}
                 >
-                  <Ionicons name="pencil" size={18} color="#0077CC" />
+                  <Ionicons
+                    name="pencil"
+                    size={18}
+                    color={theme.colors.primary}
+                  />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.deleteButton}
                   onPress={() => handleDeleteItem(index)}
                 >
-                  <Ionicons name="trash" size={18} color="#FF3B30" />
+                  <Ionicons name="trash" size={18} color={theme.colors.error} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -704,14 +726,35 @@ const SubFormController = ({
               style={styles.addMoreButton}
               onPress={handleAddItem}
             >
-              <Ionicons name="add-circle" size={20} color="#0077CC" />
-              <Text style={styles.addMoreButtonText}>Add More</Text>
+              <Ionicons
+                name="add-circle"
+                size={20}
+                color={theme.colors.primary}
+              />
+              <Text
+                style={[
+                  styles.addMoreButtonText,
+                  { color: theme.colors.primary },
+                ]}
+              >
+                Add More
+              </Text>
             </TouchableOpacity>
           )}
         </View>
       ) : (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>
+        <View
+          style={[
+            styles.emptyContainer,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+            },
+          ]}
+        >
+          <Text
+            style={[styles.emptyText, { color: theme.colors.textSecondary }]}
+          >
             {controller.emptyMessage || "No items added yet"}
           </Text>
         </View>
@@ -722,6 +765,7 @@ const SubFormController = ({
         <TouchableOpacity
           style={[
             styles.addButton,
+            { backgroundColor: theme.colors.primary },
             items.length > 0 && allowMultipleItems && styles.addButtonSmall,
           ]}
           onPress={handleAddItem}
@@ -743,40 +787,85 @@ const SubFormController = ({
         onRequestClose={handleCancelModal}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.colors.background },
+            ]}
+          >
+            <View
+              style={[
+                styles.modalHeader,
+                { borderBottomColor: theme.colors.border },
+              ]}
+            >
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
                 {editingIndex !== null
                   ? `Edit ${controller.label || "Item"}`
                   : `Add ${controller.label || "Item"}`}
               </Text>
               <TouchableOpacity onPress={handleCancelModal}>
-                <Ionicons name="close" size={24} color="#000" />
+                <Ionicons name="close" size={24} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.modalBody}>{renderSubForm}</ScrollView>
 
             {validationErrors.length > 0 && (
-              <View style={styles.validationErrorsContainer}>
+              <View
+                style={[
+                  styles.validationErrorsContainer,
+                  {
+                    backgroundColor: `${theme.colors.error}10`,
+                    borderColor: theme.colors.error,
+                  },
+                ]}
+              >
                 {validationErrors.map((error, index) => (
-                  <Text key={index} style={styles.validationErrorText}>
+                  <Text
+                    key={index}
+                    style={[
+                      styles.validationErrorText,
+                      { color: theme.colors.error },
+                    ]}
+                  >
                     {`${error.path.join(".")} - ${error.message}`}
                   </Text>
                 ))}
               </View>
             )}
 
-            <View style={styles.modalFooter}>
+            <View
+              style={[
+                styles.modalFooter,
+                { borderTopColor: theme.colors.border },
+              ]}
+            >
               <TouchableOpacity
-                style={styles.cancelButton}
+                style={[
+                  styles.cancelButton,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border,
+                  },
+                ]}
                 onPress={handleCancelModal}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text
+                  style={[
+                    styles.cancelButtonText,
+                    { color: theme.colors.text },
+                  ]}
+                >
+                  Cancel
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.saveButton}
+                style={[
+                  styles.saveButton,
+                  { backgroundColor: theme.colors.primary },
+                ]}
                 onPress={handleSubmitSubForm}
               >
                 <Text style={styles.saveButtonText}>Save</Text>
@@ -797,14 +886,12 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   itemCard: {
-    backgroundColor: "#f8f9fa",
     borderRadius: 8,
     padding: 12,
     marginBottom: 10,
     flexDirection: "row",
     justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: "#e0e0e0",
   },
   itemContent: {
     flex: 1,
@@ -813,7 +900,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 5,
-    color: "#0077CC",
   },
   customDisplayContainer: {
     width: "100%",
@@ -821,12 +907,10 @@ const styles = StyleSheet.create({
   itemDetails: {},
   itemDetail: {
     fontSize: 14,
-    color: "#333",
     marginBottom: 3,
   },
   itemDetailLabel: {
     fontWeight: "500",
-    color: "#555",
   },
   itemActions: {
     flexDirection: "row",
@@ -847,7 +931,6 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   addMoreButtonText: {
-    color: "#0077CC",
     fontSize: 14,
     fontWeight: "500",
     marginLeft: 5,
@@ -855,24 +938,19 @@ const styles = StyleSheet.create({
   emptyContainer: {
     padding: 20,
     alignItems: "center",
-    backgroundColor: "#f8f9fa",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
     borderStyle: "dashed",
   },
   emptyText: {
-    color: "#666",
     fontSize: 14,
   },
   errorText: {
-    color: "#FF3B30",
     fontSize: 14,
     textAlign: "center",
     padding: 10,
   },
   addButton: {
-    backgroundColor: "#0077CC",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -895,7 +973,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
-    backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: "90%",
@@ -906,7 +983,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
   },
   modalTitle: {
     fontSize: 18,
@@ -917,15 +993,12 @@ const styles = StyleSheet.create({
     maxHeight: "70%",
   },
   validationErrorsContainer: {
-    backgroundColor: "#FFF3F3",
-    borderColor: "#FFCCCC",
     borderWidth: 1,
     borderRadius: 5,
     margin: 15,
     padding: 10,
   },
   validationErrorText: {
-    color: "#D32F2F",
     fontSize: 12,
     marginBottom: 3,
   },
@@ -934,24 +1007,21 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     padding: 15,
     borderTopWidth: 1,
-    borderTopColor: "#eee",
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: "#f2f2f2",
     padding: 12,
     borderRadius: 5,
     marginRight: 10,
     alignItems: "center",
+    borderWidth: 1,
   },
   cancelButtonText: {
-    color: "#333",
     fontSize: 16,
     fontWeight: "500",
   },
   saveButton: {
     flex: 1,
-    backgroundColor: "#0077CC",
     padding: 12,
     borderRadius: 5,
     alignItems: "center",

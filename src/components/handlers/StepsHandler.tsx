@@ -1,3 +1,4 @@
+// src/components/handlers/StepsHandler.tsx
 import React, { ReactNode, useState } from "react";
 import {
   View,
@@ -10,6 +11,7 @@ import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 import { PropsPropsType, StepsType } from "../../types";
 import NormalHandler from "./NormalHandler";
+import { useTheme } from "../../context/ThemeContext";
 
 type PropsType = {
   steps?: StepsType<any>[];
@@ -18,6 +20,7 @@ type PropsType = {
   stepPreview?: (value: any) => ReactNode;
   hideStepsIndication?: boolean;
   onSubmit: () => void;
+  onFieldChange?: (name: string, value: any) => void;
 };
 
 const StepsHandler = ({
@@ -27,7 +30,9 @@ const StepsHandler = ({
   stepPreview,
   hideStepsIndication = false,
   onSubmit,
+  onFieldChange,
 }: PropsType) => {
+  const { theme } = useTheme();
   const [activeStep, setActiveStep] = useState<number>(0);
   const [activeSchema, setActiveSchema] = useState<any>(null);
 
@@ -69,10 +74,16 @@ const StepsHandler = ({
           steps[activeStep].isOptional === true &&
           !isPreviewStep && (
             <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-              <Text style={styles.skipButtonText}>Skip</Text>
+              <Text
+                style={[styles.skipButtonText, { color: theme.colors.primary }]}
+              >
+                Skip
+              </Text>
             </TouchableOpacity>
           )}
-        <Text style={styles.currentStepTitle}>{currentStepName}</Text>
+        <Text style={[styles.currentStepTitle, { color: theme.colors.text }]}>
+          {currentStepName}
+        </Text>
       </View>
 
       {hideStepsIndication && !hideStepsIndication && (
@@ -85,8 +96,14 @@ const StepsHandler = ({
                     style={[
                       styles.connector,
                       index <= activeStep
-                        ? styles.activeConnector
-                        : styles.inactiveConnector,
+                        ? [
+                            styles.activeConnector,
+                            { backgroundColor: theme.colors.primary },
+                          ]
+                        : [
+                            styles.inactiveConnector,
+                            { backgroundColor: theme.colors.border },
+                          ],
                     ]}
                   />
                 )}
@@ -94,10 +111,19 @@ const StepsHandler = ({
                   style={[
                     styles.stepIndicator,
                     index < activeStep
-                      ? styles.completedStep
+                      ? [
+                          styles.completedStep,
+                          { backgroundColor: theme.colors.primary },
+                        ]
                       : index === activeStep
-                      ? styles.activeStep
-                      : styles.inactiveStep,
+                      ? [
+                          styles.activeStep,
+                          { backgroundColor: theme.colors.primary },
+                        ]
+                      : [
+                          styles.inactiveStep,
+                          { backgroundColor: theme.colors.border },
+                        ],
                   ]}
                 >
                   <Text
@@ -105,7 +131,10 @@ const StepsHandler = ({
                       styles.stepNumber,
                       index < activeStep || index === activeStep
                         ? styles.activeStepNumber
-                        : styles.inactiveStepNumber,
+                        : [
+                            styles.inactiveStepNumber,
+                            { color: theme.colors.textSecondary },
+                          ],
                     ]}
                   >
                     {index + 1}
@@ -116,8 +145,14 @@ const StepsHandler = ({
                     style={[
                       styles.connector,
                       index < activeStep
-                        ? styles.activeConnector
-                        : styles.inactiveConnector,
+                        ? [
+                            styles.activeConnector,
+                            { backgroundColor: theme.colors.primary },
+                          ]
+                        : [
+                            styles.inactiveConnector,
+                            { backgroundColor: theme.colors.border },
+                          ],
                     ]}
                   />
                 )}
@@ -134,8 +169,11 @@ const StepsHandler = ({
               style={[
                 styles.stepName,
                 index === activeStep
-                  ? styles.activeStepName
-                  : styles.inactiveStepName,
+                  ? [styles.activeStepName, { color: theme.colors.primary }]
+                  : [
+                      styles.inactiveStepName,
+                      { color: theme.colors.textSecondary },
+                    ],
                 index === 0 ? { marginLeft: 0 } : null,
                 index === steps.length - 1 ? { marginRight: 0 } : null,
               ]}
@@ -151,14 +189,27 @@ const StepsHandler = ({
             {stepPreview && stepPreview(form.getValues())}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
-                style={styles.backButtonTouchable}
+                style={[
+                  styles.backButtonTouchable,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border,
+                  },
+                ]}
                 onPress={handleBack}
               >
-                <Text style={styles.backButtonText}>Back</Text>
+                <Text
+                  style={[styles.backButtonText, { color: theme.colors.text }]}
+                >
+                  Back
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.submitButtonTouchable}
+                style={[
+                  styles.submitButtonTouchable,
+                  { backgroundColor: theme.colors.primary },
+                ]}
                 onPress={onSubmit}
               >
                 <Text style={styles.submitButtonText}>Submit</Text>
@@ -173,27 +224,43 @@ const StepsHandler = ({
               form={form}
               onSubmit={() => {}}
               isStepMode={true}
+              onFieldChange={onFieldChange}
             />
 
             <View style={styles.buttonContainer}>
               {activeStep > 0 && (
                 <TouchableOpacity
-                  style={styles.backButtonTouchable}
+                  style={[
+                    styles.backButtonTouchable,
+                    {
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.border,
+                    },
+                  ]}
                   onPress={handleBack}
                 >
-                  <Text style={styles.backButtonText}>Back</Text>
+                  <Text
+                    style={[
+                      styles.backButtonText,
+                      { color: theme.colors.text },
+                    ]}
+                  >
+                    Back
+                  </Text>
                 </TouchableOpacity>
               )}
 
               <TouchableOpacity
                 style={[
                   styles.nextButtonTouchable,
+                  { backgroundColor: theme.colors.primary },
                   activeStep === 0 ? styles.fullWidthButton : {},
                 ]}
                 onPress={() => {
                   if (activeSchema) {
                     try {
-                      const result = activeSchema.safeParse(form.getValues());
+                      const formValues = form.getValues();
+                      const result = activeSchema.safeParse(formValues);
                       if (result.success) {
                         handleNext();
                       } else {
@@ -245,7 +312,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700",
     textAlign: "center",
-    color: "#333",
     marginTop: 50,
   },
   skipButton: {
@@ -256,7 +322,6 @@ const styles = StyleSheet.create({
     zIndex: 5,
   },
   skipButtonText: {
-    color: "#0077CC",
     fontWeight: "600",
     fontSize: 16,
   },
@@ -281,12 +346,9 @@ const styles = StyleSheet.create({
     display: "none",
   },
   activeStepName: {
-    color: "#0077CC",
     fontWeight: "bold",
   },
-  inactiveStepName: {
-    color: "#666666",
-  },
+  inactiveStepName: {},
   stepItem: {
     alignItems: "center",
     flexDirection: "row",
@@ -300,15 +362,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     zIndex: 2,
   },
-  activeStep: {
-    backgroundColor: "#0077CC",
-  },
-  completedStep: {
-    backgroundColor: "#0077CC",
-  },
-  inactiveStep: {
-    backgroundColor: "#CCCCCC",
-  },
+  activeStep: {},
+  completedStep: {},
+  inactiveStep: {},
   stepNumber: {
     fontWeight: "bold",
     fontSize: 14,
@@ -316,20 +372,14 @@ const styles = StyleSheet.create({
   activeStepNumber: {
     color: "white",
   },
-  inactiveStepNumber: {
-    color: "#666666",
-  },
+  inactiveStepNumber: {},
   connector: {
     height: 2,
     width: 30,
     zIndex: 1,
   },
-  activeConnector: {
-    backgroundColor: "#0077CC",
-  },
-  inactiveConnector: {
-    backgroundColor: "#CCCCCC",
-  },
+  activeConnector: {},
+  inactiveConnector: {},
   contentArea: {
     flex: 1,
     padding: 16,
@@ -350,15 +400,12 @@ const styles = StyleSheet.create({
     height: 50,
     flex: 1,
     marginRight: 8,
-    backgroundColor: "#f9f9f9",
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 5,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
   },
   backButtonText: {
-    color: "#333333",
     fontSize: 16,
     fontWeight: "500",
   },
@@ -366,7 +413,6 @@ const styles = StyleSheet.create({
     height: 50,
     flex: 1,
     marginLeft: 8,
-    backgroundColor: "#0077CC",
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 5,
@@ -375,7 +421,6 @@ const styles = StyleSheet.create({
     height: 50,
     flex: 1,
     marginLeft: 8,
-    backgroundColor: "#0077CC",
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 5,
