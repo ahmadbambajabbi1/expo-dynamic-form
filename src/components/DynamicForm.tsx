@@ -252,6 +252,7 @@ const DynamicFormContent = ({
               style={styles.submitButton}
               onPress={form.handleSubmit(onSubmit)}
               disabled={submitLoading}
+              variant="default"
             >
               {submitLoading ? (
                 <LoadingComponent />
