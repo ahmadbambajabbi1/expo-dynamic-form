@@ -53,7 +53,7 @@ export const Button = ({
     };
 
     const disabledStyle = {
-      backgroundColor: disabled ? theme.colors.surface : undefined, // Use theme's surface color
+      backgroundColor: disabled ? theme.colors.background : undefined, // Use theme's surface color
       borderColor: disabled ? theme.colors.border : undefined, // Use theme's border color
     };
 
@@ -62,7 +62,7 @@ export const Button = ({
 
   const getTextStyle = () => {
     const baseTextStyle = {
-      color: theme.colors.background, // Use theme's background as text color (contrast)
+      color: theme.colors.text, // Use theme's background as text color (contrast)
       fontSize: 16,
       fontWeight: "600" as const,
       textAlign: "center" as const,
