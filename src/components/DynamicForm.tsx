@@ -149,6 +149,7 @@ const DynamicFormContent = ({
         const method =
           (apiOptions?.method?.toLowerCase() as HttpMethod) || "post";
         let res;
+        console.log({ DynamicAxios });
         if (method === "get") {
           res = await DynamicAxios.get(apiOptions?.api, apiOptions?.options);
         } else {
@@ -174,6 +175,7 @@ const DynamicFormContent = ({
           reset();
         }
       } catch (error) {
+        console.log({ error });
         const type = error?.response?.data?.errorType;
         const data =
           error?.response?.data?.error || error?.response?.data?.errors;
