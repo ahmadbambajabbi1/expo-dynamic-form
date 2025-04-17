@@ -1,4 +1,3 @@
-// src/index.ts
 import DynamicForm from "./components/DynamicForm";
 import { initConfig } from "./utils/axiosConfig";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";

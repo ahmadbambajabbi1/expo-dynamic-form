@@ -134,6 +134,10 @@ export type StepsType<T> = {
   controllers: FormControllerProps[];
 };
 
+export type DynamicFormSubmitBtnType = {
+  title?: string;
+};
+
 export type ModalType = {
   open: boolean;
   data: any;

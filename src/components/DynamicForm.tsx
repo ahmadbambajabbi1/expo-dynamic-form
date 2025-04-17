@@ -15,6 +15,7 @@ import {
   apiOptionsType,
   ModalType,
   Theme,
+  DynamicFormSubmitBtnType,
 } from "../types";
 import { defaultTheme } from "../types/theme";
 import { ThemeProvider } from "../context/ThemeContext";
@@ -24,9 +25,7 @@ import DynamicAxios from "../utils/axiosConfig";
 interface DynamicFormContentProps {
   controllers?: FormControllerProps[];
   steps?: StepsType<ZodSchema>[];
-  submitBtn?: {
-    title?: string;
-  };
+  submitBtn?: DynamicFormSubmitBtnType;
   stepPreview?: (value: any) => ReactNode;
   hideStepsIndication?: boolean;
   formSchema?: ZodSchema;
@@ -233,6 +232,8 @@ const DynamicFormContent = ({
           stepPreview={stepPreview}
           hideStepsIndication={hideStepsIndication}
           onSubmit={form.handleSubmit(onSubmit)}
+          submitLoading={submitLoading}
+          submitBtn={submitBtn}
         />
       ) : (
         <NormalHandler

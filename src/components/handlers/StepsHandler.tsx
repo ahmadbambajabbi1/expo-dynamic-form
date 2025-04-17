@@ -8,10 +8,15 @@ import {
 } from "react-native";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
-import { PropsPropsType, StepsType } from "../../types";
+import {
+  DynamicFormSubmitBtnType,
+  PropsPropsType,
+  StepsType,
+} from "../../types";
 import NormalHandler from "./NormalHandler";
 import { useTheme } from "../../context/ThemeContext";
 import { useToast } from "../ui/Toast";
+import LoadingComponent from "../ui/LoadingComponent";
 
 type PropsType = {
   steps?: StepsType<any>[];
@@ -21,6 +26,8 @@ type PropsType = {
   hideStepsIndication?: boolean;
   onSubmit: () => void;
   onFieldChange?: (name: string, value: any) => void;
+  submitLoading?: boolean;
+  submitBtn?: DynamicFormSubmitBtnType;
 };
 
 const StepsHandler = ({
@@ -31,6 +38,8 @@ const StepsHandler = ({
   hideStepsIndication = false,
   onSubmit,
   onFieldChange,
+  submitLoading,
+  submitBtn,
 }: PropsType) => {
   const { theme } = useTheme();
   const { showToast } = useToast();
@@ -59,7 +68,10 @@ const StepsHandler = ({
     }
   }, [activeStep, steps]);
 
-  const isLastStep = steps && activeStep === steps.length - 1;
+  let isLastStep = steps && activeStep === steps.length - 1;
+  if (stepPreview) {
+    steps && activeStep === steps.length;
+  }
   const isPreviewStep = steps && activeStep === steps.length;
   const currentStepName =
     steps && steps[activeStep] ? steps[activeStep].stepName : "";
@@ -185,7 +197,7 @@ const StepsHandler = ({
       </View>
 
       <View style={styles.contentArea}>
-        {steps?.length && isPreviewStep ? (
+        {steps?.length && isLastStep ? (
           <View style={styles.previewContainer}>
             {stepPreview && stepPreview(form.getValues())}
             <View style={styles.buttonContainer}>
@@ -198,6 +210,7 @@ const StepsHandler = ({
                   },
                 ]}
                 onPress={handleBack}
+                disabled={submitLoading}
               >
                 <Text
                   style={[styles.backButtonText, { color: theme.colors.text }]}
@@ -211,9 +224,18 @@ const StepsHandler = ({
                   styles.submitButtonTouchable,
                   { backgroundColor: theme.colors.primary },
                 ]}
+                disabled={submitLoading}
                 onPress={onSubmit}
               >
-                <Text style={styles.submitButtonText}>Submit</Text>
+                <Text style={styles.submitButtonText}>
+                  {submitLoading ? (
+                    <LoadingComponent />
+                  ) : submitBtn?.title ? (
+                    submitBtn?.title
+                  ) : (
+                    "Submit"
+                  )}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -227,7 +249,6 @@ const StepsHandler = ({
               isStepMode={true}
               onFieldChange={onFieldChange}
             />
-
             <View style={styles.buttonContainer}>
               {activeStep > 0 && (
                 <TouchableOpacity
@@ -239,6 +260,7 @@ const StepsHandler = ({
                     },
                   ]}
                   onPress={handleBack}
+                  disabled={submitLoading}
                 >
                   <Text
                     style={[
@@ -250,13 +272,13 @@ const StepsHandler = ({
                   </Text>
                 </TouchableOpacity>
               )}
-
               <TouchableOpacity
                 style={[
                   styles.nextButtonTouchable,
                   { backgroundColor: theme.colors.primary },
                   activeStep === 0 ? styles.fullWidthButton : {},
                 ]}
+                disabled={submitLoading}
                 onPress={() => {
                   if (activeSchema) {
                     try {
@@ -271,8 +293,6 @@ const StepsHandler = ({
                             message: issue.message,
                           });
                         });
-
-                        // Show toast with the first validation error
                         if (result.error.issues.length > 0) {
                           const firstIssue = result.error.issues[0];
                           const errorMessage =

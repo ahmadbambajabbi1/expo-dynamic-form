@@ -23,6 +23,7 @@ import NormalHandler from "../handlers/SubFormNormalHandler";
 import StepsHandler from "../handlers/SubFormStepsHandler";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTheme } from "../../context/ThemeContext";
+import { useToast } from "../ui/Toast";
 
 type SubFormControllerProps = {
   field: {
@@ -52,6 +53,7 @@ const SubFormController = ({
   form: parentForm,
 }: SubFormControllerProps) => {
   const { theme } = useTheme();
+  const { showToast } = useToast();
   const isInitializedRef = useRef(false);
   const prevItemsRef = useRef<any[]>([]);
 
@@ -68,7 +70,6 @@ const SubFormController = ({
   const [validationErrors, setValidationErrors] = useState<any[]>([]);
 
   const allowMultipleItems = controller.addMoreVisible === true;
-
   const flattenStructure = useCallback(
     (item: any) => {
       if (!item || typeof item !== "object") return item;
@@ -95,10 +96,8 @@ const SubFormController = ({
     [controller.name]
   );
 
-  // Initialize once from existing value
   useEffect(() => {
     if (isInitializedRef.current) return;
-
     if (field.value) {
       try {
         if (Array.isArray(field.value)) {
@@ -173,15 +172,11 @@ const SubFormController = ({
         prevItemsRef.current = [];
       }
     }
-
     isInitializedRef.current = true;
   }, []);
 
-  // Update form only when items change significantly
   useEffect(() => {
     if (!isInitializedRef.current) return;
-
-    // Check if items have actually changed to prevent infinite loops
     if (JSON.stringify(items) === JSON.stringify(prevItemsRef.current)) {
       return;
     }
@@ -340,39 +335,31 @@ const SubFormController = ({
     [items]
   );
 
-  const validateSubForm = useCallback(
-    (values: any): boolean => {
-      setValidationErrors([]);
-
-      if (!controller.subform?.formSchema) {
+  const validateSubForm = useCallback((): boolean => {
+    try {
+      const formValues = subformMethods.getValues();
+      const result = controller.subform?.formSchema.safeParse(formValues);
+      if (result.success) {
         return true;
-      }
-
-      try {
-        const result = controller.subform.formSchema.safeParse(values);
-
-        if (result.success) {
-          return true;
-        } else {
-          setValidationErrors(result.error.issues);
-
-          result.error.issues.forEach((issue: any) => {
-            const path = Array.isArray(issue.path) ? issue.path[0] : issue.path;
-            subformMethods.setError(path as string, {
-              type: "manual",
-              message: issue.message,
-            });
+      } else {
+        result.error.issues.forEach((issue: z.ZodIssue) => {
+          subformMethods.setError(issue.path[0] as string, {
+            type: "required",
+            message: issue.message,
           });
-
-          return false;
+        });
+        if (result.error.issues.length > 0) {
+          const firstIssue = result.error.issues[0];
+          const errorMessage = firstIssue.message || "Validation error";
+          showToast(errorMessage, "error");
         }
-      } catch (error) {
-        console.error("Validation error:", error);
         return false;
       }
-    },
-    [controller.subform?.formSchema]
-  );
+    } catch (error) {
+      console.error("Schema validation error:");
+      return true;
+    }
+  }, [controller.subform?.formSchema]);
 
   const collectFormValues = useCallback(() => {
     if (controller.name) {
@@ -443,13 +430,10 @@ const SubFormController = ({
 
   const handleSubmitSubForm = useCallback(() => {
     const values = collectFormValues();
-
-    if (!validateSubForm(values)) {
+    if (!validateSubForm()) {
       return;
     }
-
     const processedValues = flattenStructure(values);
-
     if (editingIndex !== null) {
       const newItems = [...items];
       newItems[editingIndex] = processedValues;
@@ -461,7 +445,6 @@ const SubFormController = ({
         setItems([...items, processedValues]);
       }
     }
-
     setModalVisible(false);
   }, [
     collectFormValues,
