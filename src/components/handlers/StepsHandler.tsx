@@ -68,10 +68,8 @@ const StepsHandler = ({
     }
   }, [activeStep, steps]);
 
-  let isLastStep = steps && activeStep === steps.length - 1;
-  if (stepPreview) {
-    steps && activeStep === steps.length;
-  }
+  const isLastStep = steps && activeStep === steps.length - 1;
+  const hasPreview = !!stepPreview;
   const isPreviewStep = steps && activeStep === steps.length;
   const currentStepName =
     steps && steps[activeStep] ? steps[activeStep].stepName : "";
@@ -197,7 +195,7 @@ const StepsHandler = ({
       </View>
 
       <View style={styles.contentArea}>
-        {steps?.length && isLastStep ? (
+        {steps?.length && isPreviewStep ? (
           <View style={styles.previewContainer}>
             {stepPreview && stepPreview(form.getValues())}
             <View style={styles.buttonContainer}>
@@ -280,37 +278,43 @@ const StepsHandler = ({
                 ]}
                 disabled={submitLoading}
                 onPress={() => {
-                  if (activeSchema) {
-                    try {
-                      const formValues = form.getValues();
-                      const result = activeSchema.safeParse(formValues);
-                      if (result.success) {
-                        handleNext();
-                      } else {
-                        result.error.issues.forEach((issue: z.ZodIssue) => {
-                          form.setError(issue.path[0] as string, {
-                            type: "required",
-                            message: issue.message,
+                  if (isLastStep && !hasPreview) {
+                    // If it's the last step and there's no preview, just submit without validation
+                    onSubmit();
+                  } else {
+                    // Otherwise, validate and continue to the next step
+                    if (activeSchema) {
+                      try {
+                        const formValues = form.getValues();
+                        const result = activeSchema.safeParse(formValues);
+                        if (result.success) {
+                          handleNext();
+                        } else {
+                          result.error.issues.forEach((issue: z.ZodIssue) => {
+                            form.setError(issue.path[0] as string, {
+                              type: "required",
+                              message: issue.message,
+                            });
                           });
-                        });
-                        if (result.error.issues.length > 0) {
-                          const firstIssue = result.error.issues[0];
-                          const errorMessage =
-                            firstIssue.message || "Validation error";
-                          showToast(errorMessage, "error");
+                          if (result.error.issues.length > 0) {
+                            const firstIssue = result.error.issues[0];
+                            const errorMessage =
+                              firstIssue.message || "Validation error";
+                            showToast(errorMessage, "error");
+                          }
                         }
+                      } catch (error) {
+                        console.error("Schema validation error:", error);
+                        handleNext();
                       }
-                    } catch (error) {
-                      console.error("Schema validation error:", error);
+                    } else {
                       handleNext();
                     }
-                  } else {
-                    handleNext();
                   }
                 }}
               >
                 <Text style={styles.nextButtonText}>
-                  {isLastStep ? "Submit" : "Next"}
+                  {isLastStep && !hasPreview ? "Submit" : "Next"}
                 </Text>
               </TouchableOpacity>
             </View>
