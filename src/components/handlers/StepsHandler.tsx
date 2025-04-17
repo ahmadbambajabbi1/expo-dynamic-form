@@ -278,15 +278,15 @@ const StepsHandler = ({
                 ]}
                 disabled={submitLoading}
                 onPress={() => {
+                  console.log({ isLastStep, hasPreview });
                   if (isLastStep && !hasPreview) {
-                    // If it's the last step and there's no preview, just submit without validation
                     onSubmit();
                   } else {
-                    // Otherwise, validate and continue to the next step
                     if (activeSchema) {
                       try {
                         const formValues = form.getValues();
                         const result = activeSchema.safeParse(formValues);
+                        console.log({ activeSchema, error: result.error });
                         if (result.success) {
                           handleNext();
                         } else {
