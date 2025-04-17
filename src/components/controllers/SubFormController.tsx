@@ -68,6 +68,7 @@ const SubFormController = ({
   const [items, setItems] = useState<any[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [validationErrors, setValidationErrors] = useState<any[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const allowMultipleItems = controller.addMoreVisible === true;
   const flattenStructure = useCallback(
@@ -227,6 +228,7 @@ const SubFormController = ({
     setEditingIndex(null);
     setValidationErrors([]);
     subformMethods.reset({});
+    subformMethods.clearErrors();
 
     if (
       controller.subform?.formtype === "normal" &&
@@ -262,7 +264,7 @@ const SubFormController = ({
       setEditingIndex(index);
       const itemToEdit = items[index];
       setValidationErrors([]);
-
+      subformMethods.clearErrors();
       subformMethods.reset({});
 
       const setValue = (ctrl: FormControllerProps, itemToEdit: any) => {
@@ -338,28 +340,53 @@ const SubFormController = ({
   const validateSubForm = useCallback((): boolean => {
     try {
       const formValues = subformMethods.getValues();
-      const result = controller.subform?.formSchema.safeParse(formValues);
+
+      // If no schema is provided, assume validation passes
+      if (!controller.subform?.formSchema) {
+        return true;
+      }
+
+      const result = controller.subform.formSchema.safeParse(formValues);
+
       if (result.success) {
+        // Clear any previous validation errors
+        setValidationErrors([]);
         return true;
       } else {
-        result.error.issues.forEach((issue: z.ZodIssue) => {
-          subformMethods.setError(issue.path[0] as string, {
-            type: "required",
-            message: issue.message,
-          });
+        // Format the validation errors for display
+        const errors = result.error.issues;
+
+        // Set validation errors for display in the modal
+        setValidationErrors(errors);
+
+        // Also set errors in the form so they appear on the inputs
+        errors.forEach((issue: z.ZodIssue) => {
+          if (issue.path && issue.path.length > 0) {
+            const fieldName = issue.path[0].toString();
+            subformMethods.setError(fieldName, {
+              type: "validation",
+              message: issue.message,
+            });
+          }
         });
-        if (result.error.issues.length > 0) {
-          const firstIssue = result.error.issues[0];
+
+        // Show the first error as a toast notification
+        if (errors.length > 0) {
+          const firstIssue = errors[0];
           const errorMessage = firstIssue.message || "Validation error";
-          showToast(errorMessage, "error");
+          const fieldName =
+            firstIssue.path.length > 0 ? `${firstIssue.path[0]}` : "Form";
+          showToast(`${fieldName}: ${errorMessage}`, "error");
         }
+
         return false;
       }
     } catch (error) {
-      console.error("Schema validation error:");
-      return true;
+      console.error("Schema validation error:", error);
+      showToast("An error occurred during validation", "error");
+      return false;
     }
-  }, [controller.subform?.formSchema]);
+  }, [controller.subform?.formSchema, subformMethods, showToast]);
 
   const collectFormValues = useCallback(() => {
     if (controller.name) {
@@ -429,22 +456,39 @@ const SubFormController = ({
   }, [controller.name, controller.subform]);
 
   const handleSubmitSubForm = useCallback(() => {
-    const values = collectFormValues();
+    // Reset previous validation errors
+    setValidationErrors([]);
+    setIsSubmitting(true);
+
+    // First validate the subform
     if (!validateSubForm()) {
-      return;
+      setIsSubmitting(false);
+      return; // Stop execution if validation fails
     }
+
+    // Collect form values
+    const values = collectFormValues();
+
+    // Process the values
     const processedValues = flattenStructure(values);
+
+    // Update items based on whether we're editing or adding
     if (editingIndex !== null) {
+      // Update existing item
       const newItems = [...items];
       newItems[editingIndex] = processedValues;
       setItems(newItems);
     } else {
+      // Add new item
       if (!allowMultipleItems) {
         setItems([processedValues]);
       } else {
         setItems([...items, processedValues]);
       }
     }
+
+    setIsSubmitting(false);
+    // Close the modal
     setModalVisible(false);
   }, [
     collectFormValues,
@@ -479,6 +523,7 @@ const SubFormController = ({
   const handleCancelModal = useCallback(() => {
     setModalVisible(false);
     setValidationErrors([]);
+    subformMethods.clearErrors();
   }, []);
 
   const renderSubForm = useMemo(() => {
@@ -721,6 +766,14 @@ const SubFormController = ({
                   },
                 ]}
               >
+                <Text
+                  style={[
+                    styles.validationErrorTitle,
+                    { color: theme.colors.error },
+                  ]}
+                >
+                  Please fix the following errors:
+                </Text>
                 {validationErrors.map((error, index) => (
                   <Text
                     key={index}
@@ -729,7 +782,8 @@ const SubFormController = ({
                       { color: theme.colors.error },
                     ]}
                   >
-                    {`${error.path.join(".")} - ${error.message}`}
+                    • {error.path.length > 0 ? `${error.path.join(".")}: ` : ""}
+                    {error.message}
                   </Text>
                 ))}
               </View>
@@ -750,6 +804,7 @@ const SubFormController = ({
                   },
                 ]}
                 onPress={handleCancelModal}
+                disabled={isSubmitting}
               >
                 <Text
                   style={[
@@ -765,10 +820,14 @@ const SubFormController = ({
                 style={[
                   styles.saveButton,
                   { backgroundColor: theme.colors.primary },
+                  isSubmitting && { opacity: 0.7 },
                 ]}
                 onPress={handleSubmitSubForm}
+                disabled={isSubmitting}
               >
-                <Text style={styles.saveButtonText}>Save</Text>
+                <Text style={styles.saveButtonText}>
+                  {isSubmitting ? "Validating..." : "Save"}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -898,9 +957,15 @@ const styles = StyleSheet.create({
     margin: 15,
     padding: 10,
   },
+  validationErrorTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
   validationErrorText: {
     fontSize: 12,
-    marginBottom: 3,
+    marginBottom: 5,
+    paddingLeft: 5,
   },
   modalFooter: {
     flexDirection: "row",
