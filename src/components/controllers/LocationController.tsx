@@ -25,7 +25,6 @@ type PropsType = {
   form: UseFormReturn<z.TypeOf<any>, any, undefined>;
 };
 
-// Internal location type for displaying in the UI
 type LocationType = {
   id: string;
   name: string;
@@ -36,9 +35,8 @@ type LocationType = {
   placeId: string;
 };
 
-// Type that directly matches what the schema expects
 type SchemaLocationData = {
-  coordinates: [number, number]; // [longitude, latitude]
+  coordinates: [number, number];
   address: string;
   city: string;
   country: string;
@@ -58,22 +56,19 @@ const LocationController = ({ controller, field, form }: PropsType) => {
     null
   );
 
-  // For multi-select mode
   const [selectedLocations, setSelectedLocations] = useState<LocationType[]>(
     []
   );
   const isMultiSelect = controller.type === "multi-location";
 
-  // Convert LocationType to schema-compatible format
   const convertToSchemaFormat = (
     location: LocationType
   ): SchemaLocationData => {
-    // Extract city from the address (assuming format like "Name, City, Region, Country")
     const addressParts = location.address.split(", ");
     const city = addressParts.length > 1 ? addressParts[1] : location.name;
 
     return {
-      coordinates: [location.lng, location.lat], // [longitude, latitude] order
+      coordinates: [location.lng, location.lat],
       address: location.address,
       city: city,
       country: location.country,
@@ -81,89 +76,10 @@ const LocationController = ({ controller, field, form }: PropsType) => {
     };
   };
 
-  // // Function to get user's current location
-  // const getUserCurrentLocation = () => {
-  //   return new Promise<{ lat: number; lng: number }>((resolve, reject) => {
-  //     if (!navigator.geolocation) {
-  //       console.log("Geolocation is not supported by this browser");
-  //       reject(new Error("Geolocation not supported"));
-  //       return;
-  //     }
-
-  //     navigator.geolocation.getCurrentPosition(
-  //       (position) => {
-  //         const userLocation = {
-  //           lat: position.coords.latitude,
-  //           lng: position.coords.longitude,
-  //         };
-  //         resolve(userLocation);
-  //       },
-  //       (error) => {
-  //         console.error("Error getting user location:", error);
-  //         reject(error);
-  //       },
-  //       { timeout: 10000, enableHighAccuracy: true }
-  //     );
-  //   });
-  // };
-
-  // // Function to reverse geocode coordinates to get location details
-  // const reverseGeocode = async (
-  //   lat: number,
-  //   lng: number
-  // ): Promise<LocationType | null> => {
-  //   try {
-  //     const response = await fetch(
-  //       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
-  //     );
-
-  //     if (!response.ok) {
-  //       throw new Error(
-  //         `Reverse geocoding failed with status ${response.status}`
-  //       );
-  //     }
-
-  //     const data = await response.json();
-
-  //     // Only return data if we have valid information from the API
-  //     if (!data || !data.place_id) {
-  //       console.error("Invalid response from geocoding API");
-  //       return null;
-  //     }
-
-  //     // Extract data from response
-  //     const name =
-  //       data.name || data.address?.road || data.address?.suburb || null;
-
-  //     // If we don't have a proper name, don't continue
-  //     if (!name) {
-  //       console.error("No valid name found in geocoding response");
-  //       return null;
-  //     }
-
-  //     return {
-  //       id: `loc_${data.place_id}`,
-  //       name: name,
-  //       address: data.display_name || "",
-  //       country: data.address?.country || "",
-  //       lat: lat,
-  //       lng: lng,
-  //       placeId: data.place_id.toString(),
-  //     };
-  //   } catch (error) {
-  //     console.error("Reverse geocoding error:", error);
-  //     return null;
-  //   }
-  // };
-
-  // Initialize from existing value or default
   useEffect(() => {
-    // Handle existing form values
     if (field.value) {
       try {
-        // If it's already in schema format with coordinates
         if (field.value.coordinates && field.value.address) {
-          // Create a display-friendly version
           const displayLocation: LocationType = {
             id: `loc_${
               field.value.placeId || Math.random().toString(36).substr(2, 9)
@@ -177,9 +93,7 @@ const LocationController = ({ controller, field, form }: PropsType) => {
           };
 
           setSelectedLocation(displayLocation);
-          // No need to update form since it's already in correct format
         }
-        // Handle other formats if needed
       } catch (error) {
         console.error("Error handling existing location value:", error);
       }
@@ -246,12 +160,11 @@ const LocationController = ({ controller, field, form }: PropsType) => {
             placeId: item.place_id.toString(),
           };
         })
-        .filter(Boolean); // Remove any null items from the map
+        .filter(Boolean);
 
       setLocations(mappedLocations);
     } catch (error) {
       console.error("Search locations error:", error);
-      // If API fails, show an empty list
       setLocations([]);
     } finally {
       setLoading(false);
@@ -261,12 +174,9 @@ const LocationController = ({ controller, field, form }: PropsType) => {
   const handleSearchChange = (text: string) => {
     setSearch(text);
 
-    // Debounce search requests
     if (searchTimeout) {
       clearTimeout(searchTimeout);
     }
-
-    // Only trigger search if there are at least 3 characters (to reduce API calls)
     if (text.length >= 3) {
       const timeout = setTimeout(() => {
         searchLocations(text);
@@ -274,12 +184,10 @@ const LocationController = ({ controller, field, form }: PropsType) => {
 
       setSearchTimeout(timeout as any);
     } else {
-      // Clear locations when text is less than 3 characters
       setLocations([]);
     }
   };
 
-  // Load empty locations list when modal opens
   useEffect(() => {
     if (modalVisible) {
       setLocations([]);
@@ -289,7 +197,6 @@ const LocationController = ({ controller, field, form }: PropsType) => {
 
   const handleSelectLocation = (location: LocationType) => {
     if (isMultiSelect) {
-      // For multi-select, add to array if not already selected
       const isAlreadySelected = selectedLocations.some(
         (loc) => loc.id === location.id
       );
@@ -305,24 +212,17 @@ const LocationController = ({ controller, field, form }: PropsType) => {
 
       setSelectedLocations(updatedLocations);
 
-      // Convert to schema format for form submission
       const schemaFormattedLocations = updatedLocations.map(
         convertToSchemaFormat
       );
 
-      // Update form with schema-formatted data
       field.onChange(schemaFormattedLocations);
       form.setValue(controller?.name || "", schemaFormattedLocations, {
         shouldValidate: true,
       });
     } else {
-      // For single select
       setSelectedLocation(location);
-
-      // Convert to schema format for form submission
       const schemaFormattedLocation = convertToSchemaFormat(location);
-
-      // Update form with schema-formatted data
       field.onChange(schemaFormattedLocation);
       form.setValue(controller?.name || "", schemaFormattedLocation, {
         shouldValidate: true,
@@ -336,13 +236,9 @@ const LocationController = ({ controller, field, form }: PropsType) => {
       (loc) => loc.id !== locationId
     );
     setSelectedLocations(updatedLocations);
-
-    // Convert to schema format for form submission
     const schemaFormattedLocations = updatedLocations.map(
       convertToSchemaFormat
     );
-
-    // Update form with schema-formatted data
     field.onChange(schemaFormattedLocations);
     form.setValue(controller?.name || "", schemaFormattedLocations, {
       shouldValidate: true,

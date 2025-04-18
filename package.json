@@ -1,6 +1,6 @@
 {
-  "name": "test-expo-dynamic-form",
-  "version": "1.1.15",
+  "name": "expo-dynamic-form",
+  "version": "2.1.21",
   "description": "A highly customizable dynamic form component for React Native and Expo applications",
   "main": "lib/commonjs/index.js",
   "module": "lib/module/index.js",

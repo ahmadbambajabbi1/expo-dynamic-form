@@ -278,7 +278,6 @@ const SubFormStepsHandler = ({
                 ]}
                 disabled={submitLoading}
                 onPress={() => {
-                  console.log({ isLastStep, hasPreview });
                   if (isLastStep && !hasPreview) {
                     onSubmit();
                   } else {
@@ -286,7 +285,6 @@ const SubFormStepsHandler = ({
                       try {
                         const formValues = form.getValues();
                         const result = activeSchema.safeParse(formValues);
-                        console.log({ activeSchema, error: result.error });
                         if (result.success) {
                           handleNext();
                         } else {
