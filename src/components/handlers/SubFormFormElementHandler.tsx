@@ -4,8 +4,8 @@ import { UseFormReturn, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { FormControllerProps, PropsPropsType } from "../../types";
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../../context/ThemeContext";
 
-// Import controllers
 import SelectController from "../controllers/SelectController";
 import TextareaController from "../controllers/TextareaController";
 import CheckBoxController from "../controllers/CheckBoxController";
@@ -31,7 +31,6 @@ type PropsType = {
   controller: FormControllerProps;
   form: UseFormReturn<z.TypeOf<any>, any, undefined>;
   props?: PropsPropsType;
-  // NEW: Add callback for field changes
   onFieldChange?: (name: string, value: any) => void;
 };
 
@@ -40,6 +39,7 @@ const SubFormFormElementHandler = ({
   form,
   onFieldChange,
 }: PropsType) => {
+  const { theme } = useTheme();
   const selectedValues = useWatch({
     control: form.control,
     name: controller.name || "",
@@ -66,12 +66,9 @@ const SubFormFormElementHandler = ({
     fetchControllers();
   }, [selectedValues, controller.mapController]);
 
-  // Handle group-checkbox specially
   const [groupCheckboxState, setGroupCheckboxState] = useState<
     Record<string, boolean>
   >({});
-
-  // Initialize group checkbox state
   useEffect(() => {
     if (controller.type === "group-checkbox" && controller.groupCheckbox) {
       const initialState: Record<string, boolean> = {};
@@ -81,17 +78,11 @@ const SubFormFormElementHandler = ({
       });
 
       setGroupCheckboxState(initialState);
-
-      // Set the form value directly for the parent field
       form.setValue(controller.name || "", initialState);
     }
   }, [controller, form]);
-
-  // Handle group checkbox toggle
   const handleGroupCheckboxToggle = (checkboxName: string) => {
     if (!controller.name) return;
-
-    // Update local state
     const newState = {
       ...groupCheckboxState,
       [checkboxName]: !groupCheckboxState[checkboxName],
@@ -99,18 +90,14 @@ const SubFormFormElementHandler = ({
 
     setGroupCheckboxState(newState);
 
-    // Update form value
     form.setValue(controller.name, newState, {
       shouldValidate: true,
     });
-
-    // Notify parent of field change if callback exists
     if (onFieldChange) {
       onFieldChange(controller.name, newState);
     }
   };
 
-  // Custom render for group-checkbox
   const renderGroupCheckbox = () => {
     if (!controller.groupCheckbox) return null;
 
@@ -126,15 +113,33 @@ const SubFormFormElementHandler = ({
               style={[
                 styles.checkbox,
                 groupCheckboxState[checkbox.name || ""]
-                  ? styles.checkboxChecked
-                  : styles.checkboxUnchecked,
+                  ? [
+                      styles.checkboxChecked,
+                      {
+                        backgroundColor: theme.colors.primary,
+                        borderColor: theme.colors.primary,
+                      },
+                    ]
+                  : [
+                      styles.checkboxUnchecked,
+                      {
+                        backgroundColor: theme.colors.background,
+                        borderColor: theme.colors.border,
+                      },
+                    ],
               ]}
             >
               {groupCheckboxState[checkbox.name || ""] && (
-                <Ionicons name="checkmark" size={16} color="#fff" />
+                <Ionicons
+                  name="checkmark"
+                  size={16}
+                  color={theme.colors.contrast || "#fff"}
+                />
               )}
             </View>
-            <Text style={styles.checkboxLabel}>{checkbox.label}</Text>
+            <Text style={[styles.checkboxLabel, { color: theme.colors.text }]}>
+              {checkbox.label}
+            </Text>
           </TouchableOpacity>
         ))}
       </>
@@ -145,12 +150,10 @@ const SubFormFormElementHandler = ({
     const field = form.register(controller?.name || "");
     const value = form.getValues(controller?.name || "");
 
-    // Enhanced field props for tracking changes
     const fieldProps = {
       onChange: (value: any) => {
         form.setValue(controller?.name || "", value);
 
-        // Notify parent of field change if callback exists
         if (onFieldChange && controller?.name) {
           onFieldChange(controller.name, value);
         }
@@ -160,7 +163,6 @@ const SubFormFormElementHandler = ({
       name: controller?.name || "",
     };
 
-    // Handle group-checkbox separately in this component
     if (controller.type === "group-checkbox") {
       return renderGroupCheckbox();
     }
@@ -332,12 +334,28 @@ const SubFormFormElementHandler = ({
       <View style={[styles.fieldContainer, controller.style]}>
         {controller.type !== "sub-form" && controller.label && (
           <View style={styles.labelContainer}>
-            <Text style={[styles.label, controller.labelProps?.style]}>
+            <Text
+              style={[
+                styles.label,
+                { color: theme.colors.text },
+                controller.labelProps?.style,
+              ]}
+            >
               {controller?.label}
               {controller?.optional ? (
-                <Text style={styles.optional}> (optional)</Text>
+                <Text
+                  style={[
+                    styles.optional,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  {" "}
+                  (optional)
+                </Text>
               ) : (
-                <Text style={styles.required}>*</Text>
+                <Text style={[styles.required, { color: theme.colors.error }]}>
+                  *
+                </Text>
               )}
             </Text>
 
@@ -351,10 +369,14 @@ const SubFormFormElementHandler = ({
         )}
         {renderFormField()}
         {controller?.description && (
-          <Text style={styles.description}>{controller?.description}</Text>
+          <Text
+            style={[styles.description, { color: theme.colors.textSecondary }]}
+          >
+            {controller?.description}
+          </Text>
         )}
         {form.formState.errors[controller?.name || ""] && (
-          <Text style={styles.errorText}>
+          <Text style={[styles.errorText, { color: theme.colors.error }]}>
             {form.formState.errors[controller?.name || ""]?.message?.toString()}
           </Text>
         )}
@@ -380,21 +402,17 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   required: {
-    color: "red",
     marginLeft: 4,
   },
   optional: {
-    color: "#666",
     fontWeight: "normal",
   },
   description: {
     fontSize: 12,
-    color: "#666",
     marginTop: 4,
     marginLeft: 8,
   },
   errorText: {
-    color: "red",
     fontSize: 12,
     marginTop: 4,
     marginLeft: 8,
@@ -425,17 +443,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: 10,
-  },
-  checkboxUnchecked: {
-    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#ccc",
   },
-  checkboxChecked: {
-    backgroundColor: "#0077CC",
-    borderWidth: 1,
-    borderColor: "#0077CC",
-  },
+  checkboxUnchecked: {},
+  checkboxChecked: {},
   checkboxLabel: {
     fontSize: 16,
   },

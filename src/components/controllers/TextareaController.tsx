@@ -1,4 +1,3 @@
-// src/components/controllers/TextareaController.tsx
 import React, { useState } from "react";
 import { View, TextInput, StyleSheet } from "react-native";
 import { FormControllerProps } from "../../types";

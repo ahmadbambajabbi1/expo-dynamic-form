@@ -1,4 +1,3 @@
-// src/components/controllers/NumberInputController.tsx
 import React, { useState, useCallback, memo } from "react";
 import { View, TextInput, StyleSheet, Platform } from "react-native";
 import { UseFormReturn } from "react-hook-form";
@@ -23,27 +22,16 @@ const NumberInputControllerComponent = ({
   form,
 }: PropsType) => {
   const { theme } = useTheme();
-
-  // Initialize with current value or empty string
   const [localValue, setLocalValue] = useState<string>(
     field.value !== undefined && field.value !== null ? String(field.value) : ""
   );
-
-  // Change handler - directly updates the form now without debounce
   const handleChangeText = useCallback(
     (text: string) => {
-      // Only allow digits and at most one decimal point
       const filtered = text.replace(/[^0-9.]/g, "");
-
-      // Handle multiple decimal points
       const parts = filtered.split(".");
       const formatted =
         parts.length > 1 ? `${parts[0]}.${parts.slice(1).join("")}` : filtered;
-
-      // Update local state
       setLocalValue(formatted);
-
-      // Update form value immediately
       if (formatted === "") {
         field.onChange(null);
         form.setValue(controller?.name || "", null, {
@@ -90,7 +78,6 @@ const NumberInputControllerComponent = ({
           field.onBlur();
         }}
         maxLength={controller.maximun}
-        // Performance optimizations
         renderToHardwareTextureAndroid={true}
         contextMenuHidden={Platform.OS === "ios"}
         autoCapitalize="none"
@@ -116,7 +103,6 @@ const styles = StyleSheet.create({
   inputFocused: {},
 });
 
-// Use memo to prevent unnecessary re-renders
 const NumberInputController = memo(NumberInputControllerComponent);
 
 export default NumberInputController;

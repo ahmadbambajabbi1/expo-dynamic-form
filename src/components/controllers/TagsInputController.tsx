@@ -14,6 +14,7 @@ import { z } from "zod";
 import { FormControllerProps } from "../../types";
 import { Ionicons } from "@expo/vector-icons";
 import Axios from "../../utils/axiosConfig";
+import { useTheme } from "../../context/ThemeContext";
 
 type PropsType = {
   field: {
@@ -32,6 +33,7 @@ type TagType = {
 };
 
 const TagsInputController = ({ controller, field, form }: PropsType) => {
+  const { theme } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<TagType[]>([]);
@@ -40,24 +42,18 @@ const TagsInputController = ({ controller, field, form }: PropsType) => {
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
     null
   );
-
-  // Initialize with any existing value
   useEffect(() => {
     if (field.value) {
       try {
         if (Array.isArray(field.value)) {
-          // If it's already an array of strings, convert to TagType for internal use
           if (typeof field.value[0] === "string") {
             const tagObjects = field.value.map((name, index) => ({
               id: `temp-${index}`,
               name,
             }));
             setSelectedTags(tagObjects);
-            // No need to update form since it's already in correct format
           } else {
-            // It's an array of TagType objects, so set internal state
             setSelectedTags(field.value);
-            // Update form with just the names
             const tagNames = field.value.map((tag) => tag.name);
             field.onChange(tagNames);
             form.setValue(controller?.name || "", tagNames, {
@@ -65,11 +61,9 @@ const TagsInputController = ({ controller, field, form }: PropsType) => {
             });
           }
         } else if (typeof field.value === "string") {
-          // Handle case where it might be a JSON string
           try {
             const parsedTags = JSON.parse(field.value);
             if (Array.isArray(parsedTags)) {
-              // If it's an array of strings
               if (typeof parsedTags[0] === "string") {
                 const tagObjects = parsedTags.map((name, index) => ({
                   id: `temp-${index}`,
@@ -78,9 +72,7 @@ const TagsInputController = ({ controller, field, form }: PropsType) => {
                 setSelectedTags(tagObjects);
                 field.onChange(parsedTags);
               } else {
-                // If it's an array of objects
                 setSelectedTags(parsedTags);
-                // Return just the names
                 const tagNames = parsedTags.map((tag) => tag.name);
                 field.onChange(tagNames);
                 form.setValue(controller?.name || "", tagNames, {
@@ -89,7 +81,6 @@ const TagsInputController = ({ controller, field, form }: PropsType) => {
               }
             }
           } catch (error) {
-            // Not a JSON string, maybe comma-separated?
             const tagNames = field.value.split(",").filter(Boolean);
             const tagObjects = tagNames.map((name, index) => ({
               id: `temp-${index}`,
@@ -117,7 +108,6 @@ const TagsInputController = ({ controller, field, form }: PropsType) => {
 
     setLoading(true);
     try {
-      // Call the API endpoint
       const response = await Axios.get("/tags/search", {
         params: { q: query },
       });
@@ -128,7 +118,6 @@ const TagsInputController = ({ controller, field, form }: PropsType) => {
         setSearchResults([]);
       }
     } catch (error) {
-      // console.error("Error searching tags:", error);
       setSearchResults([]);
     } finally {
       setLoading(false);
@@ -138,7 +127,6 @@ const TagsInputController = ({ controller, field, form }: PropsType) => {
   const handleSearchChange = (text: string) => {
     setSearch(text);
 
-    // Debounce search requests
     if (searchTimeout) {
       clearTimeout(searchTimeout);
     }
@@ -155,15 +143,10 @@ const TagsInputController = ({ controller, field, form }: PropsType) => {
   };
 
   const addTag = (tag: TagType) => {
-    // Check if tag is already selected
     if (!selectedTags.some((t) => t.id === tag.id)) {
       const updatedTags = [...selectedTags, tag];
       setSelectedTags(updatedTags);
-
-      // Extract just the tag names for the form
       const tagNames = updatedTags.map((t) => t.name);
-
-      // Update form with array of strings
       field.onChange(tagNames);
       form.setValue(controller?.name || "", tagNames, {
         shouldValidate: true,
@@ -173,8 +156,6 @@ const TagsInputController = ({ controller, field, form }: PropsType) => {
 
   const createNewTag = () => {
     if (!search.trim()) return;
-
-    // Create a new tag with a temporary ID
     const newTag = {
       id: `new-${Date.now()}`,
       name: search.trim(),
@@ -187,11 +168,7 @@ const TagsInputController = ({ controller, field, form }: PropsType) => {
   const removeTag = (tagId: string) => {
     const updatedTags = selectedTags.filter((tag) => tag.id !== tagId);
     setSelectedTags(updatedTags);
-
-    // Extract just the tag names for the form
     const tagNames = updatedTags.map((tag) => tag.name);
-
-    // Update form with array of strings
     field.onChange(tagNames);
     form.setValue(controller?.name || "", tagNames, {
       shouldValidate: true,
@@ -201,32 +178,56 @@ const TagsInputController = ({ controller, field, form }: PropsType) => {
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        style={[styles.tagsButton, controller.style]}
+        style={[
+          styles.tagsButton,
+          {
+            borderColor: theme.colors.border,
+            backgroundColor: theme.colors.background,
+          },
+          controller.style,
+        ]}
         onPress={() => setModalVisible(true)}
       >
         <Text
           style={[
             styles.tagsButtonText,
-            selectedTags.length === 0 && styles.placeholderText,
+            { color: theme.colors.text },
+            selectedTags.length === 0 && { color: theme.colors.textSecondary },
           ]}
         >
           {selectedTags.length > 0
             ? `${selectedTags.length} tag(s) selected`
             : controller.placeholder || "Select or add tags"}
         </Text>
-        <Ionicons name="pricetags" size={20} color="#666" />
+        <Ionicons
+          name="pricetags"
+          size={20}
+          color={theme.colors.textSecondary}
+        />
       </TouchableOpacity>
 
       {selectedTags.length > 0 && (
         <View style={styles.tagsContainer}>
           {selectedTags.map((tag) => (
-            <View key={tag.id} style={styles.tag}>
-              <Text style={styles.tagText}>{tag.name}</Text>
+            <View
+              key={tag.id}
+              style={[
+                styles.tag,
+                { backgroundColor: `${theme.colors.primary}15` },
+              ]}
+            >
+              <Text style={[styles.tagText, { color: theme.colors.primary }]}>
+                {tag.name}
+              </Text>
               <TouchableOpacity
                 style={styles.tagRemove}
                 onPress={() => removeTag(tag.id)}
               >
-                <Ionicons name="close-circle" size={18} color="#666" />
+                <Ionicons
+                  name="close-circle"
+                  size={18}
+                  color={theme.colors.textSecondary}
+                />
               </TouchableOpacity>
             </View>
           ))}
@@ -240,28 +241,47 @@ const TagsInputController = ({ controller, field, form }: PropsType) => {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.colors.background },
+            ]}
+          >
+            <View
+              style={[
+                styles.modalHeader,
+                { borderBottomColor: theme.colors.border },
+              ]}
+            >
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
                 {controller.label || "Search or Add Tags"}
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#000" />
+                <Ionicons name="close" size={24} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.searchContainer}>
+            <View
+              style={[
+                styles.searchContainer,
+                {
+                  borderColor: theme.colors.border,
+                  backgroundColor: theme.colors.surface,
+                },
+              ]}
+            >
               <Ionicons
                 name="search"
                 size={20}
-                color="#666"
+                color={theme.colors.textSecondary}
                 style={styles.searchIcon}
               />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: theme.colors.text }]}
                 value={search}
                 onChangeText={handleSearchChange}
                 placeholder="Search for tags..."
+                placeholderTextColor={theme.colors.textSecondary}
                 autoCapitalize="none"
                 clearButtonMode="while-editing"
               />
@@ -273,21 +293,40 @@ const TagsInputController = ({ controller, field, form }: PropsType) => {
                   <Ionicons
                     name="add-circle-outline"
                     size={22}
-                    color="#0077CC"
+                    color={theme.colors.primary}
                   />
-                  <Text style={styles.addButtonText}>Add new</Text>
+                  <Text
+                    style={[
+                      styles.addButtonText,
+                      { color: theme.colors.primary },
+                    ]}
+                  >
+                    Add new
+                  </Text>
                 </TouchableOpacity>
               )}
             </View>
 
             {loading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#0077CC" />
-                <Text style={styles.loadingText}>Searching tags...</Text>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+                <Text
+                  style={[
+                    styles.loadingText,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  Searching tags...
+                </Text>
               </View>
             ) : searchResults.length === 0 ? (
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>
+                <Text
+                  style={[
+                    styles.emptyText,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
                   {search.trim() === ""
                     ? "Type to search for tags"
                     : "No tags found. You can add a new tag."}
@@ -307,14 +346,21 @@ const TagsInputController = ({ controller, field, form }: PropsType) => {
                     <TouchableOpacity
                       style={[
                         styles.tagItem,
-                        isSelected && styles.selectedTagItem,
+                        { borderBottomColor: theme.colors.border },
+                        isSelected && {
+                          backgroundColor: `${theme.colors.primary}10`,
+                        },
                       ]}
                       onPress={() => addTag(item)}
                     >
                       <Text
                         style={[
                           styles.tagItemText,
-                          isSelected && styles.selectedTagItemText,
+                          { color: theme.colors.text },
+                          isSelected && {
+                            fontWeight: "bold",
+                            color: theme.colors.primary,
+                          },
                         ]}
                       >
                         {item.name}
@@ -324,13 +370,13 @@ const TagsInputController = ({ controller, field, form }: PropsType) => {
                         <Ionicons
                           name="checkmark-circle"
                           size={20}
-                          color="#0077CC"
+                          color={theme.colors.primary}
                         />
                       ) : (
                         <Ionicons
                           name="add-circle-outline"
                           size={20}
-                          color="#666"
+                          color={theme.colors.textSecondary}
                         />
                       )}
                     </TouchableOpacity>
@@ -339,12 +385,27 @@ const TagsInputController = ({ controller, field, form }: PropsType) => {
               />
             )}
 
-            <View style={styles.modalFooter}>
+            <View
+              style={[
+                styles.modalFooter,
+                { borderTopColor: theme.colors.border },
+              ]}
+            >
               <TouchableOpacity
-                style={styles.doneButton}
+                style={[
+                  styles.doneButton,
+                  { backgroundColor: theme.colors.primary },
+                ]}
                 onPress={() => setModalVisible(false)}
               >
-                <Text style={styles.doneButtonText}>Done</Text>
+                <Text
+                  style={[
+                    styles.doneButtonText,
+                    { color: theme.colors.contrast || "#fff" },
+                  ]}
+                >
+                  Done
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -363,20 +424,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: "#ccc",
     borderRadius: 5,
     padding: 10,
-    backgroundColor: "#fff",
     height: 46,
   },
   tagsButtonText: {
     fontSize: 16,
-    color: "#000",
     flex: 1,
   },
-  placeholderText: {
-    color: "#999",
-  },
+  placeholderText: {},
   tagsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -385,7 +441,6 @@ const styles = StyleSheet.create({
   tag: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#e1f5fe",
     borderRadius: 16,
     paddingVertical: 4,
     paddingHorizontal: 8,
@@ -394,7 +449,6 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: 14,
-    color: "#0077CC",
     marginRight: 4,
   },
   tagRemove: {
@@ -407,7 +461,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
-    backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: "80%",
@@ -418,7 +471,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
   },
   modalTitle: {
     fontSize: 18,
@@ -428,11 +480,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#ddd",
     borderRadius: 5,
     margin: 10,
     paddingHorizontal: 10,
-    backgroundColor: "#f9f9f9",
   },
   searchIcon: {
     marginRight: 8,
@@ -449,7 +499,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   addButtonText: {
-    color: "#0077CC",
     marginLeft: 4,
   },
   loadingContainer: {
@@ -459,7 +508,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: "#666",
   },
   emptyContainer: {
     padding: 30,
@@ -467,7 +515,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: "#666",
     textAlign: "center",
   },
   tagsList: {
@@ -479,32 +526,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
   },
   tagItemText: {
     fontSize: 16,
   },
-  selectedTagItem: {
-    backgroundColor: "#f0f7ff",
-  },
-  selectedTagItemText: {
-    fontWeight: "bold",
-    color: "#0077CC",
-  },
+  selectedTagItem: {},
+  selectedTagItemText: {},
   modalFooter: {
     padding: 15,
     borderTopWidth: 1,
-    borderTopColor: "#eee",
     alignItems: "center",
   },
   doneButton: {
     paddingVertical: 10,
     paddingHorizontal: 20,
-    backgroundColor: "#0077CC",
     borderRadius: 5,
   },
   doneButtonText: {
-    color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
   },

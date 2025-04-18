@@ -14,6 +14,7 @@ import { z } from "zod";
 import { FormControllerProps } from "../../types";
 import { Ionicons } from "@expo/vector-icons";
 import SearchableAxios from "../../utils/axiosConfig";
+import { useTheme } from "../../context/ThemeContext";
 
 type PropsType = {
   field: {
@@ -29,6 +30,7 @@ type PropsType = {
 type OptionType = { label: string; value: string };
 
 const SearchableSelectController = ({ controller, field, form }: PropsType) => {
+  const { theme } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
   const [search, setSearch] = useState("");
   const [options, setOptions] = useState<OptionType[]>([]);
@@ -49,7 +51,6 @@ const SearchableSelectController = ({ controller, field, form }: PropsType) => {
     {} as Record<string, any>
   );
 
-  // Fetch options from API if needed
   useEffect(() => {
     if (controller?.optionsApiOptions?.api) {
       fetchOptions();
@@ -59,7 +60,6 @@ const SearchableSelectController = ({ controller, field, form }: PropsType) => {
     }
   }, [watchedValues, controller.options]);
 
-  // Set selected option based on field value
   useEffect(() => {
     if (field.value && options.length > 0) {
       const option = options.find((opt) => opt.value === field.value);
@@ -69,7 +69,6 @@ const SearchableSelectController = ({ controller, field, form }: PropsType) => {
     }
   }, [field.value, options]);
 
-  // Filter options based on search
   useEffect(() => {
     if (search && options.length > 0) {
       const filtered = options.filter((option) =>
@@ -116,15 +115,26 @@ const SearchableSelectController = ({ controller, field, form }: PropsType) => {
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        style={[styles.selectButton, controller.style]}
+        style={[
+          styles.selectButton,
+          {
+            borderColor: theme.colors.border,
+            backgroundColor: theme.colors.background,
+          },
+          controller.style,
+        ]}
         onPress={() => setModalVisible(true)}
         disabled={loading}
       >
         <Text
           style={[
             styles.selectButtonText,
-            !selectedOption && styles.placeholderText,
-            loading && styles.loadingText,
+            { color: theme.colors.text },
+            !selectedOption && { color: theme.colors.textSecondary },
+            loading && {
+              color: theme.colors.textSecondary,
+              fontStyle: "italic",
+            },
           ]}
         >
           {loading
@@ -133,7 +143,7 @@ const SearchableSelectController = ({ controller, field, form }: PropsType) => {
             ? selectedOption.label
             : controller.placeholder || "Select an option"}
         </Text>
-        <Ionicons name="search" size={20} color="#666" />
+        <Ionicons name="search" size={20} color={theme.colors.textSecondary} />
       </TouchableOpacity>
 
       <Modal
@@ -143,46 +153,81 @@ const SearchableSelectController = ({ controller, field, form }: PropsType) => {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.colors.background },
+            ]}
+          >
+            <View
+              style={[
+                styles.modalHeader,
+                { borderBottomColor: theme.colors.border },
+              ]}
+            >
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
                 {controller.label || "Search and select"}
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#000" />
+                <Ionicons name="close" size={24} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.searchContainer}>
+            <View
+              style={[
+                styles.searchContainer,
+                {
+                  borderColor: theme.colors.border,
+                  backgroundColor: theme.colors.surface,
+                },
+              ]}
+            >
               <Ionicons
                 name="search"
                 size={20}
-                color="#666"
+                color={theme.colors.textSecondary}
                 style={styles.searchIcon}
               />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: theme.colors.text }]}
                 value={search}
                 onChangeText={setSearch}
                 placeholder="Search..."
+                placeholderTextColor={theme.colors.textSecondary}
                 autoCapitalize="none"
                 clearButtonMode="while-editing"
               />
               {search !== "" && (
                 <TouchableOpacity onPress={() => setSearch("")}>
-                  <Ionicons name="close-circle" size={20} color="#666" />
+                  <Ionicons
+                    name="close-circle"
+                    size={20}
+                    color={theme.colors.textSecondary}
+                  />
                 </TouchableOpacity>
               )}
             </View>
 
             {loading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#0077CC" />
-                <Text style={styles.loadingText}>Loading options...</Text>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+                <Text
+                  style={[
+                    styles.loadingText,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  Loading options...
+                </Text>
               </View>
             ) : filteredOptions.length === 0 ? (
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>
+                <Text
+                  style={[
+                    styles.emptyText,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
                   {controller?.emptyIndicator || "No options found"}
                 </Text>
               </View>
@@ -195,22 +240,31 @@ const SearchableSelectController = ({ controller, field, form }: PropsType) => {
                   <TouchableOpacity
                     style={[
                       styles.optionItem,
-                      selectedOption?.value === item.value &&
-                        styles.selectedOption,
+                      { borderBottomColor: theme.colors.border },
+                      selectedOption?.value === item.value && {
+                        backgroundColor: `${theme.colors.primary}10`,
+                      },
                     ]}
                     onPress={() => handleSelect(item)}
                   >
                     <Text
                       style={[
                         styles.optionText,
-                        selectedOption?.value === item.value &&
-                          styles.selectedOptionText,
+                        { color: theme.colors.text },
+                        selectedOption?.value === item.value && {
+                          color: theme.colors.primary,
+                          fontWeight: "bold",
+                        },
                       ]}
                     >
                       {item.label}
                     </Text>
                     {selectedOption?.value === item.value && (
-                      <Ionicons name="checkmark" size={20} color="#0077CC" />
+                      <Ionicons
+                        name="checkmark"
+                        size={20}
+                        color={theme.colors.primary}
+                      />
                     )}
                   </TouchableOpacity>
                 )}
@@ -232,23 +286,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: "#ccc",
     borderRadius: 5,
     padding: 10,
-    backgroundColor: "#fff",
     height: 46,
   },
   selectButtonText: {
     fontSize: 16,
-    color: "#000",
     flex: 1,
   },
-  placeholderText: {
-    color: "#999",
-  },
+  placeholderText: {},
   loadingText: {
-    color: "#666",
     fontStyle: "italic",
+    marginTop: 10,
+    fontSize: 16,
   },
   modalOverlay: {
     flex: 1,
@@ -256,7 +306,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
-    backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: "80%",
@@ -267,7 +316,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
   },
   modalTitle: {
     fontSize: 18,
@@ -277,11 +325,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#ddd",
     borderRadius: 5,
     margin: 10,
     paddingHorizontal: 10,
-    backgroundColor: "#f9f9f9",
   },
   searchIcon: {
     marginRight: 8,
@@ -300,18 +346,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
   },
-  selectedOption: {
-    backgroundColor: "#f0f7ff",
-  },
+  selectedOption: {},
   optionText: {
     fontSize: 16,
   },
-  selectedOptionText: {
-    fontWeight: "bold",
-    color: "#0077CC",
-  },
+  selectedOptionText: {},
   loadingContainer: {
     padding: 30,
     alignItems: "center",
@@ -323,7 +363,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: "#666",
     textAlign: "center",
   },
 });

@@ -28,8 +28,6 @@ type PropsType = {
 };
 
 const SelectController = ({ controller, field, form }: PropsType) => {
-  // const { theme } = useTheme();
-
   return controller?.options === "from-api" ? (
     <ApiOptionController controller={controller} field={field} form={form} />
   ) : (

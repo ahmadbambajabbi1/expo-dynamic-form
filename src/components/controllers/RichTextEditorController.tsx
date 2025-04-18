@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { FormControllerProps } from "../../types";
+import { useTheme } from "../../context/ThemeContext";
 
 type PropsType = {
   field: {
@@ -35,27 +36,22 @@ type FormatType =
   | "quote";
 
 const RichTextEditorController = ({ controller, field }: PropsType) => {
+  const { theme } = useTheme();
   const [text, setText] = useState(field.value || "");
   const [htmlContent, setHtmlContent] = useState(field.value || "");
   const [selection, setSelection] = useState({ start: 0, end: 0 });
   const [activeFormats, setActiveFormats] = useState<FormatType[]>([]);
 
-  // Modal state for link insertion
   const [linkModalVisible, setLinkModalVisible] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [linkText, setLinkText] = useState("");
 
   const inputRef = useRef<TextInput>(null);
 
-  // Synchronize the HTML content with the form field
   useEffect(() => {
     field.onChange(htmlContent);
   }, [htmlContent]);
-
-  // Update active formats based on cursor position
   const updateActiveFormats = (start: number, end: number) => {
-    // This is a simplified implementation
-    // In a real-world app, you'd parse the HTML around the cursor
     const formats: FormatType[] = [];
 
     const surroundingText = text.substring(
@@ -75,14 +71,12 @@ const RichTextEditorController = ({ controller, field }: PropsType) => {
     setActiveFormats(formats);
   };
 
-  // Apply formatting
   const applyFormat = (format: FormatType) => {
     if (
       selection.start === selection.end &&
       format !== "bullet" &&
       format !== "numbered"
     ) {
-      // Just enable the format for next typing if no text is selected
       setActiveFormats((prev) =>
         prev.includes(format)
           ? prev.filter((f) => f !== format)
@@ -98,7 +92,7 @@ const RichTextEditorController = ({ controller, field }: PropsType) => {
     switch (format) {
       case "bold":
         formattedText = `<b>${selectedText}</b>`;
-        newCursorPosition += 7; // accounting for the added tags
+        newCursorPosition += 7;
         break;
       case "italic":
         formattedText = `<i>${selectedText}</i>`;
@@ -143,8 +137,6 @@ const RichTextEditorController = ({ controller, field }: PropsType) => {
       default:
         formattedText = selectedText;
     }
-
-    // Insert formatted text
     const newText =
       text.substring(0, selection.start) +
       formattedText +
@@ -153,11 +145,9 @@ const RichTextEditorController = ({ controller, field }: PropsType) => {
     setText(newText);
     setHtmlContent(newText);
 
-    // Focus back on the editor and set selection
     setTimeout(() => {
       if (inputRef.current) {
         inputRef.current.focus();
-        // Select just after the inserted formatted text
         inputRef.current.setNativeProps({
           selection: { start: newCursorPosition, end: newCursorPosition },
         });
@@ -165,29 +155,24 @@ const RichTextEditorController = ({ controller, field }: PropsType) => {
     }, 10);
   };
 
-  // Handle text selection
   const handleSelectionChange = (event: any) => {
     const { start, end } = event.nativeEvent.selection;
     setSelection({ start, end });
     updateActiveFormats(start, end);
   };
 
-  // Handle text changes
   const handleChangeText = (newText: string) => {
     setText(newText);
     setHtmlContent(newText);
   };
 
-  // Add a link
   const handleAddLink = () => {
-    // Set the link text to the selected text if any
     if (selection.start !== selection.end) {
       setLinkText(text.substring(selection.start, selection.end));
     }
     setLinkModalVisible(true);
   };
 
-  // Insert link into the editor
   const insertLink = () => {
     if (!linkUrl) {
       Alert.alert("Error", "Please enter a URL for the link");
@@ -210,66 +195,93 @@ const RichTextEditorController = ({ controller, field }: PropsType) => {
 
   return (
     <View style={styles.container}>
-      {/* Formatting Toolbar */}
-      <View style={styles.toolbar}>
+      <View style={[styles.toolbar, { backgroundColor: theme.colors.surface }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {/* Text formatting */}
           <TouchableOpacity
             style={[
               styles.toolbarButton,
-              activeFormats.includes("bold") && styles.activeButton,
+              activeFormats.includes("bold") && [
+                styles.activeButton,
+                { backgroundColor: `${theme.colors.primary}15` },
+              ],
             ]}
             onPress={() => applyFormat("bold")}
           >
             <Ionicons
               name="text"
               size={20}
-              color={activeFormats.includes("bold") ? "#0077CC" : "#444"}
+              color={
+                activeFormats.includes("bold")
+                  ? theme.colors.primary
+                  : theme.colors.textSecondary
+              }
             />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[
               styles.toolbarButton,
-              activeFormats.includes("italic") && styles.activeButton,
+              activeFormats.includes("italic") && [
+                styles.activeButton,
+                { backgroundColor: `${theme.colors.primary}15` },
+              ],
             ]}
             onPress={() => applyFormat("italic")}
           >
             <Ionicons
               name="text-outline"
               size={20}
-              color={activeFormats.includes("italic") ? "#0077CC" : "#444"}
+              color={
+                activeFormats.includes("italic")
+                  ? theme.colors.primary
+                  : theme.colors.textSecondary
+              }
             />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[
               styles.toolbarButton,
-              activeFormats.includes("underline") && styles.activeButton,
+              activeFormats.includes("underline") && [
+                styles.activeButton,
+                { backgroundColor: `${theme.colors.primary}15` },
+              ],
             ]}
             onPress={() => applyFormat("underline")}
           >
             <Ionicons
               name="text"
               size={20}
-              color={activeFormats.includes("underline") ? "#0077CC" : "#444"}
+              color={
+                activeFormats.includes("underline")
+                  ? theme.colors.primary
+                  : theme.colors.textSecondary
+              }
             />
           </TouchableOpacity>
 
-          <View style={styles.separator} />
+          <View
+            style={[styles.separator, { backgroundColor: theme.colors.border }]}
+          />
 
-          {/* Headings */}
           <TouchableOpacity
             style={[
               styles.toolbarButton,
-              activeFormats.includes("h1") && styles.activeButton,
+              activeFormats.includes("h1") && [
+                styles.activeButton,
+                { backgroundColor: `${theme.colors.primary}15` },
+              ],
             ]}
             onPress={() => applyFormat("h1")}
           >
             <Text
               style={[
                 styles.headingButton,
-                activeFormats.includes("h1") && styles.activeHeading,
+                { color: theme.colors.textSecondary },
+                activeFormats.includes("h1") && [
+                  styles.activeHeading,
+                  { color: theme.colors.primary },
+                ],
               ]}
             >
               H1
@@ -279,14 +291,21 @@ const RichTextEditorController = ({ controller, field }: PropsType) => {
           <TouchableOpacity
             style={[
               styles.toolbarButton,
-              activeFormats.includes("h2") && styles.activeButton,
+              activeFormats.includes("h2") && [
+                styles.activeButton,
+                { backgroundColor: `${theme.colors.primary}15` },
+              ],
             ]}
             onPress={() => applyFormat("h2")}
           >
             <Text
               style={[
                 styles.headingButton,
-                activeFormats.includes("h2") && styles.activeHeading,
+                { color: theme.colors.textSecondary },
+                activeFormats.includes("h2") && [
+                  styles.activeHeading,
+                  { color: theme.colors.primary },
+                ],
               ]}
             >
               H2
@@ -296,81 +315,116 @@ const RichTextEditorController = ({ controller, field }: PropsType) => {
           <TouchableOpacity
             style={[
               styles.toolbarButton,
-              activeFormats.includes("h3") && styles.activeButton,
+              activeFormats.includes("h3") && [
+                styles.activeButton,
+                { backgroundColor: `${theme.colors.primary}15` },
+              ],
             ]}
             onPress={() => applyFormat("h3")}
           >
             <Text
               style={[
                 styles.headingButton,
-                activeFormats.includes("h3") && styles.activeHeading,
+                { color: theme.colors.textSecondary },
+                activeFormats.includes("h3") && [
+                  styles.activeHeading,
+                  { color: theme.colors.primary },
+                ],
               ]}
             >
               H3
             </Text>
           </TouchableOpacity>
 
-          <View style={styles.separator} />
+          <View
+            style={[styles.separator, { backgroundColor: theme.colors.border }]}
+          />
 
-          {/* Lists */}
           <TouchableOpacity
             style={styles.toolbarButton}
             onPress={() => applyFormat("bullet")}
           >
-            <Ionicons name="list" size={20} color="#444" />
+            <Ionicons
+              name="list"
+              size={20}
+              color={theme.colors.textSecondary}
+            />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.toolbarButton}
             onPress={() => applyFormat("numbered")}
           >
-            <Ionicons name="list-outline" size={20} color="#444" />
+            <Ionicons
+              name="list-outline"
+              size={20}
+              color={theme.colors.textSecondary}
+            />
           </TouchableOpacity>
 
-          <View style={styles.separator} />
+          <View
+            style={[styles.separator, { backgroundColor: theme.colors.border }]}
+          />
 
-          {/* Blockquote */}
           <TouchableOpacity
             style={[
               styles.toolbarButton,
-              activeFormats.includes("quote") && styles.activeButton,
+              activeFormats.includes("quote") && [
+                styles.activeButton,
+                { backgroundColor: `${theme.colors.primary}15` },
+              ],
             ]}
             onPress={() => applyFormat("quote")}
           >
             <Ionicons
               name="chatbubble-ellipses"
               size={20}
-              color={activeFormats.includes("quote") ? "#0077CC" : "#444"}
+              color={
+                activeFormats.includes("quote")
+                  ? theme.colors.primary
+                  : theme.colors.textSecondary
+              }
             />
           </TouchableOpacity>
 
-          {/* Link */}
           <TouchableOpacity
             style={[
               styles.toolbarButton,
-              activeFormats.includes("link") && styles.activeButton,
+              activeFormats.includes("link") && [
+                styles.activeButton,
+                { backgroundColor: `${theme.colors.primary}15` },
+              ],
             ]}
             onPress={handleAddLink}
           >
             <Ionicons
               name="link"
               size={20}
-              color={activeFormats.includes("link") ? "#0077CC" : "#444"}
+              color={
+                activeFormats.includes("link")
+                  ? theme.colors.primary
+                  : theme.colors.textSecondary
+              }
             />
           </TouchableOpacity>
         </ScrollView>
       </View>
 
-      {/* Editor */}
       <ScrollView style={styles.editorScrollView}>
         <TextInput
           ref={inputRef}
           style={[
             styles.editor,
-            { minHeight: (controller.rows || 6) * 20 },
+            {
+              minHeight: (controller.rows || 6) * 20,
+              color: theme.colors.text,
+              backgroundColor: theme.colors.background,
+              borderColor: theme.colors.border,
+            },
             controller.style,
           ]}
           placeholder={controller.placeholder}
+          placeholderTextColor={theme.colors.textSecondary}
           value={text}
           onChangeText={handleChangeText}
           onBlur={field.onBlur}
@@ -382,7 +436,6 @@ const RichTextEditorController = ({ controller, field }: PropsType) => {
         />
       </ScrollView>
 
-      {/* Link Modal */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -390,23 +443,50 @@ const RichTextEditorController = ({ controller, field }: PropsType) => {
         onRequestClose={() => setLinkModalVisible(false)}
       >
         <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Insert Link</Text>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.colors.background },
+            ]}
+          >
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+              Insert Link
+            </Text>
 
-            <Text style={styles.inputLabel}>Link Text</Text>
+            <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
+              Link Text
+            </Text>
             <TextInput
-              style={styles.modalInput}
+              style={[
+                styles.modalInput,
+                {
+                  borderColor: theme.colors.border,
+                  color: theme.colors.text,
+                  backgroundColor: theme.colors.surface,
+                },
+              ]}
               value={linkText}
               onChangeText={setLinkText}
               placeholder="Text to display"
+              placeholderTextColor={theme.colors.textSecondary}
             />
 
-            <Text style={styles.inputLabel}>URL</Text>
+            <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
+              URL
+            </Text>
             <TextInput
-              style={styles.modalInput}
+              style={[
+                styles.modalInput,
+                {
+                  borderColor: theme.colors.border,
+                  color: theme.colors.text,
+                  backgroundColor: theme.colors.surface,
+                },
+              ]}
               value={linkUrl}
               onChangeText={setLinkUrl}
               placeholder="https://example.com"
+              placeholderTextColor={theme.colors.textSecondary}
               autoCapitalize="none"
               keyboardType="url"
             />
@@ -416,14 +496,32 @@ const RichTextEditorController = ({ controller, field }: PropsType) => {
                 style={styles.modalButton}
                 onPress={() => setLinkModalVisible(false)}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text
+                  style={[
+                    styles.cancelButtonText,
+                    { color: theme.colors.primary },
+                  ]}
+                >
+                  Cancel
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.modalButton, styles.insertButton]}
+                style={[
+                  styles.modalButton,
+                  styles.insertButton,
+                  { backgroundColor: theme.colors.primary },
+                ]}
                 onPress={insertLink}
               >
-                <Text style={styles.insertButtonText}>Insert</Text>
+                <Text
+                  style={[
+                    styles.insertButtonText,
+                    { color: theme.colors.contrast || "#FFFFFF" },
+                  ]}
+                >
+                  Insert
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -443,7 +541,6 @@ const styles = StyleSheet.create({
   },
   toolbar: {
     padding: 8,
-    backgroundColor: "#f5f5f5",
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
   },
@@ -460,15 +557,13 @@ const styles = StyleSheet.create({
   headingButton: {
     fontWeight: "bold",
     fontSize: 14,
-    color: "#444",
   },
   activeHeading: {
-    color: "#0077CC",
+    fontWeight: "bold",
   },
   separator: {
     width: 1,
     height: 24,
-    backgroundColor: "#e0e0e0",
     marginHorizontal: 6,
   },
   editorScrollView: {
@@ -481,7 +576,6 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
     minHeight: 120,
   },
-  // Modal styles
   modalContainer: {
     flex: 1,
     justifyContent: "center",
@@ -489,7 +583,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
   },
   modalContent: {
-    backgroundColor: "white",
     borderRadius: 10,
     padding: 20,
     width: "80%",
@@ -515,7 +608,6 @@ const styles = StyleSheet.create({
   },
   modalInput: {
     borderWidth: 1,
-    borderColor: "#ccc",
     borderRadius: 5,
     padding: 10,
     marginBottom: 15,
@@ -535,10 +627,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#0077CC",
   },
   cancelButtonText: {
-    color: "#0077CC",
+    fontWeight: "bold",
   },
   insertButtonText: {
-    color: "white",
     fontWeight: "bold",
   },
 });

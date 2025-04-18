@@ -14,14 +14,18 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Button } from "../ui/button";
 import { apiOptionsType } from "../../types";
 import OttpAxios from "../../utils/axiosConfig";
+import { useTheme } from "../../context/ThemeContext";
+
 const VERIFICATION_DATA_LOCASTORAGE_NAME = "dhdhd";
 const VERIFICATION_VERIFY_NAME = "dkkdd";
+
 type PropsType = {
   verifyingDataProps: any;
   apiOptions: apiOptionsType;
 };
 
 const OttpInputHandler = ({ verifyingDataProps, apiOptions }: PropsType) => {
+  const { theme } = useTheme();
   const [submitLoading, setSubmitLoading] = useState(false);
   const [verifyingData, setVerifyingData] = useState<any>(verifyingDataProps);
   const [verify, setVerify] = useState(true);
@@ -151,7 +155,6 @@ const OttpInputHandler = ({ verifyingDataProps, apiOptions }: PropsType) => {
         form.reset();
       }
     } catch (error: any) {
-      // console.error("Verification error:", error);
       if (error.response?.data?.errors) {
         const errors = error.response.data.error || error.response.data.errors;
         if (Array.isArray(errors)) {
@@ -177,9 +180,11 @@ const OttpInputHandler = ({ verifyingDataProps, apiOptions }: PropsType) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <View style={styles.contentContainer}>
-        <Text style={styles.label}>
+        <Text style={[styles.label, { color: theme.colors.text }]}>
           {`Verify the code sent to ${verifyingData?.value || ""}`}
         </Text>
 
@@ -191,15 +196,18 @@ const OttpInputHandler = ({ verifyingDataProps, apiOptions }: PropsType) => {
                 key={index}
                 style={[
                   styles.otpInputContainer,
+                  {
+                    borderColor: form.formState.errors.inputValue
+                      ? theme.colors.error
+                      : theme.colors.border,
+                    backgroundColor: theme.colors.surface,
+                  },
                   index === 2 || index === 3 ? styles.otpSeparator : null,
-                  form.formState.errors.inputValue
-                    ? styles.otpInputError
-                    : null,
                 ]}
               >
                 <TextInput
                   ref={(ref) => (inputRefs.current[index] = ref)}
-                  style={styles.otpInput}
+                  style={[styles.otpInput, { color: theme.colors.text }]}
                   value={otpValues[index]}
                   onChangeText={(value) => handleOtpChange(index, value)}
                   keyboardType="number-pad"
@@ -215,27 +223,31 @@ const OttpInputHandler = ({ verifyingDataProps, apiOptions }: PropsType) => {
         </View>
 
         {form.formState.errors.inputValue && (
-          <Text style={styles.errorText}>
+          <Text style={[styles.errorText, { color: theme.colors.error }]}>
             {form.formState.errors.inputValue.message}
           </Text>
         )}
 
         <View style={styles.resendContainer}>
-          <Text style={styles.resendText}>
+          <Text
+            style={[styles.resendText, { color: theme.colors.textSecondary }]}
+          >
             Resend verification code after {minutes} seconds
           </Text>
           <TouchableOpacity
             onPress={handleResend}
             disabled={minutes > 0}
-            style={[
-              styles.resendButton,
-              minutes > 0 && styles.resendButtonDisabled,
-            ]}
+            style={styles.resendButton}
           >
             <Text
               style={[
                 styles.resendButtonText,
-                minutes > 0 && styles.resendButtonTextDisabled,
+                {
+                  color:
+                    minutes > 0
+                      ? theme.colors.textSecondary
+                      : theme.colors.primary,
+                },
               ]}
             >
               Resend
@@ -244,11 +256,25 @@ const OttpInputHandler = ({ verifyingDataProps, apiOptions }: PropsType) => {
         </View>
 
         <Button
-          style={styles.verifyButton}
+          style={[
+            styles.verifyButton,
+            { backgroundColor: theme.colors.primary },
+          ]}
           onPress={form.handleSubmit(onSubmit)}
           disabled={submitLoading}
         >
-          {submitLoading ? <ActivityIndicator color="#fff" /> : "Verify"}
+          {submitLoading ? (
+            <ActivityIndicator color={theme.colors.contrast || "#fff"} />
+          ) : (
+            <Text
+              style={{
+                color: theme.colors.contrast || "#fff",
+                fontWeight: "bold",
+              }}
+            >
+              Verify
+            </Text>
+          )}
         </Button>
       </View>
     </View>
@@ -258,7 +284,6 @@ const OttpInputHandler = ({ verifyingDataProps, apiOptions }: PropsType) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   contentContainer: {
     flex: 1,
@@ -281,7 +306,6 @@ const styles = StyleSheet.create({
     width: 45,
     height: 50,
     borderWidth: 1,
-    borderColor: "#ccc",
     borderRadius: 8,
     marginHorizontal: 5,
     justifyContent: "center",
@@ -290,9 +314,6 @@ const styles = StyleSheet.create({
   otpSeparator: {
     marginLeft: 15,
   },
-  otpInputError: {
-    borderColor: "red",
-  },
   otpInput: {
     width: "100%",
     height: "100%",
@@ -300,7 +321,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   errorText: {
-    color: "red",
     marginBottom: 10,
     fontSize: 14,
   },
@@ -311,22 +331,14 @@ const styles = StyleSheet.create({
   },
   resendText: {
     fontSize: 14,
-    color: "#666",
   },
   resendButton: {
     marginLeft: 8,
     paddingVertical: 5,
     paddingHorizontal: 10,
   },
-  resendButtonDisabled: {
-    opacity: 0.5,
-  },
   resendButtonText: {
-    color: "#0077CC",
     fontWeight: "bold",
-  },
-  resendButtonTextDisabled: {
-    color: "#999",
   },
   verifyButton: {
     paddingHorizontal: 50,

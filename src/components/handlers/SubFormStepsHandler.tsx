@@ -1,4 +1,4 @@
-import React, { ReactNode, useState, useMemo } from "react";
+import React, { ReactNode, useState } from "react";
 import {
   View,
   Text,
@@ -8,9 +8,15 @@ import {
 } from "react-native";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
-import { PropsPropsType, StepsType } from "../../types";
-import NormalHandler from "./SubFormNormalHandler";
+import {
+  DynamicFormSubmitBtnType,
+  PropsPropsType,
+  StepsType,
+} from "../../types";
+import NormalHandler from "./NormalHandler";
 import { useTheme } from "../../context/ThemeContext";
+import { useToast } from "../ui/Toast";
+import LoadingComponent from "../ui/LoadingComponent";
 
 type PropsType = {
   steps?: StepsType<any>[];
@@ -20,6 +26,8 @@ type PropsType = {
   hideStepsIndication?: boolean;
   onSubmit: () => void;
   onFieldChange?: (name: string, value: any) => void;
+  submitLoading?: boolean;
+  submitBtn?: DynamicFormSubmitBtnType;
 };
 
 const SubFormStepsHandler = ({
@@ -30,186 +38,13 @@ const SubFormStepsHandler = ({
   hideStepsIndication = false,
   onSubmit,
   onFieldChange,
+  submitLoading,
+  submitBtn,
 }: PropsType) => {
   const { theme } = useTheme();
+  const { showToast } = useToast();
   const [activeStep, setActiveStep] = useState<number>(0);
   const [activeSchema, setActiveSchema] = useState<any>(null);
-
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-        container: {
-          flex: 1,
-          backgroundColor: theme.colors.background,
-        },
-        contentContainer: {
-          paddingBottom: 20,
-        },
-        headerContainer: {
-          flexDirection: "column",
-          alignItems: "center",
-          marginTop: 10,
-          marginBottom: 8,
-          position: "relative",
-          paddingHorizontal: 16,
-          width: "100%",
-        },
-        currentStepTitle: {
-          fontSize: 20,
-          fontWeight: "700",
-          textAlign: "center",
-          color: theme.colors.text,
-          marginTop: 50,
-        },
-        skipButton: {
-          position: "absolute",
-          right: 16,
-          top: 0,
-          padding: 8,
-          zIndex: 5,
-        },
-        skipButtonText: {
-          color: theme.colors.primary,
-          fontWeight: "600",
-          fontSize: 16,
-        },
-        stepperContainer: {
-          flexDirection: "row",
-          paddingHorizontal: 16,
-          paddingTop: 10,
-          paddingBottom: 5,
-          justifyContent: "center",
-          alignItems: "center",
-        },
-        stepNamesContainer: {
-          flexDirection: "row",
-          paddingHorizontal: 16,
-          marginBottom: 25,
-          justifyContent: "space-between",
-        },
-        stepName: {
-          fontSize: 14,
-          textAlign: "center",
-          flex: 1,
-          display: "none",
-        },
-        activeStepName: {
-          color: theme.colors.primary,
-          fontWeight: "bold",
-        },
-        inactiveStepName: {
-          color: theme.colors.textSecondary,
-        },
-        stepItem: {
-          alignItems: "center",
-          flexDirection: "row",
-          zIndex: 1,
-        },
-        stepIndicator: {
-          width: 30,
-          height: 30,
-          borderRadius: 15,
-          justifyContent: "center",
-          alignItems: "center",
-          zIndex: 2,
-        },
-        activeStep: {
-          backgroundColor: theme.colors.primary,
-        },
-        completedStep: {
-          backgroundColor: theme.colors.primary,
-        },
-        inactiveStep: {
-          backgroundColor: theme.colors.border,
-        },
-        stepNumber: {
-          fontWeight: "bold",
-          fontSize: 14,
-        },
-        activeStepNumber: {
-          color: "white",
-        },
-        inactiveStepNumber: {
-          color: theme.colors.textSecondary,
-        },
-        connector: {
-          height: 2,
-          width: 30,
-          zIndex: 1,
-        },
-        activeConnector: {
-          backgroundColor: theme.colors.primary,
-        },
-        inactiveConnector: {
-          backgroundColor: theme.colors.border,
-        },
-        contentArea: {
-          flex: 1,
-          padding: 16,
-        },
-        stepContent: {
-          flex: 1,
-        },
-        previewContainer: {
-          flex: 1,
-        },
-        buttonContainer: {
-          flexDirection: "row",
-          justifyContent: "space-between",
-          marginTop: 20,
-          paddingHorizontal: 8,
-        },
-        backButtonTouchable: {
-          height: 50,
-          flex: 1,
-          marginRight: 8,
-          backgroundColor: theme.colors.surface,
-          justifyContent: "center",
-          alignItems: "center",
-          borderRadius: 5,
-          borderWidth: 1,
-          borderColor: theme.colors.border,
-        },
-        backButtonText: {
-          color: theme.colors.text,
-          fontSize: 16,
-          fontWeight: "500",
-        },
-        nextButtonTouchable: {
-          height: 50,
-          flex: 1,
-          marginLeft: 8,
-          backgroundColor: theme.colors.primary,
-          justifyContent: "center",
-          alignItems: "center",
-          borderRadius: 5,
-        },
-        nextButtonText: {
-          color: "white",
-          fontSize: 16,
-          fontWeight: "500",
-        },
-        submitButtonTouchable: {
-          height: 50,
-          flex: 1,
-          marginLeft: 8,
-          backgroundColor: theme.colors.primary,
-          justifyContent: "center",
-          alignItems: "center",
-          borderRadius: 5,
-        },
-        submitButtonText: {
-          color: "white",
-          fontSize: 16,
-          fontWeight: "500",
-        },
-        fullWidthButton: {
-          marginLeft: 0,
-          flex: 1,
-        },
-      }),
-    [theme]
-  );
 
   const handleNext = () => {
     setActiveSchema(null);
@@ -250,10 +85,16 @@ const SubFormStepsHandler = ({
           steps[activeStep].isOptional === true &&
           !isPreviewStep && (
             <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-              <Text style={styles.skipButtonText}>Skip</Text>
+              <Text
+                style={[styles.skipButtonText, { color: theme.colors.primary }]}
+              >
+                Skip
+              </Text>
             </TouchableOpacity>
           )}
-        <Text style={styles.currentStepTitle}>{currentStepName}</Text>
+        <Text style={[styles.currentStepTitle, { color: theme.colors.text }]}>
+          {currentStepName}
+        </Text>
       </View>
 
       {!hideStepsIndication && (
@@ -266,8 +107,14 @@ const SubFormStepsHandler = ({
                     style={[
                       styles.connector,
                       index <= activeStep
-                        ? styles.activeConnector
-                        : styles.inactiveConnector,
+                        ? [
+                            styles.activeConnector,
+                            { backgroundColor: theme.colors.primary },
+                          ]
+                        : [
+                            styles.inactiveConnector,
+                            { backgroundColor: theme.colors.border },
+                          ],
                     ]}
                   />
                 )}
@@ -275,10 +122,19 @@ const SubFormStepsHandler = ({
                   style={[
                     styles.stepIndicator,
                     index < activeStep
-                      ? styles.completedStep
+                      ? [
+                          styles.completedStep,
+                          { backgroundColor: theme.colors.primary },
+                        ]
                       : index === activeStep
-                      ? styles.activeStep
-                      : styles.inactiveStep,
+                      ? [
+                          styles.activeStep,
+                          { backgroundColor: theme.colors.primary },
+                        ]
+                      : [
+                          styles.inactiveStep,
+                          { backgroundColor: theme.colors.border },
+                        ],
                   ]}
                 >
                   <Text
@@ -286,7 +142,10 @@ const SubFormStepsHandler = ({
                       styles.stepNumber,
                       index < activeStep || index === activeStep
                         ? styles.activeStepNumber
-                        : styles.inactiveStepNumber,
+                        : [
+                            styles.inactiveStepNumber,
+                            { color: theme.colors.textSecondary },
+                          ],
                     ]}
                   >
                     {index + 1}
@@ -297,8 +156,14 @@ const SubFormStepsHandler = ({
                     style={[
                       styles.connector,
                       index < activeStep
-                        ? styles.activeConnector
-                        : styles.inactiveConnector,
+                        ? [
+                            styles.activeConnector,
+                            { backgroundColor: theme.colors.primary },
+                          ]
+                        : [
+                            styles.inactiveConnector,
+                            { backgroundColor: theme.colors.border },
+                          ],
                     ]}
                   />
                 )}
@@ -315,8 +180,11 @@ const SubFormStepsHandler = ({
               style={[
                 styles.stepName,
                 index === activeStep
-                  ? styles.activeStepName
-                  : styles.inactiveStepName,
+                  ? [styles.activeStepName, { color: theme.colors.primary }]
+                  : [
+                      styles.inactiveStepName,
+                      { color: theme.colors.textSecondary },
+                    ],
                 index === 0 ? { marginLeft: 0 } : null,
                 index === steps.length - 1 ? { marginRight: 0 } : null,
               ]}
@@ -332,17 +200,40 @@ const SubFormStepsHandler = ({
             {stepPreview && stepPreview(form.getValues())}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
-                style={styles.backButtonTouchable}
+                style={[
+                  styles.backButtonTouchable,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border,
+                  },
+                ]}
                 onPress={handleBack}
+                disabled={submitLoading}
               >
-                <Text style={styles.backButtonText}>Back</Text>
+                <Text
+                  style={[styles.backButtonText, { color: theme.colors.text }]}
+                >
+                  Back
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.submitButtonTouchable}
+                style={[
+                  styles.submitButtonTouchable,
+                  { backgroundColor: theme.colors.primary },
+                ]}
+                disabled={submitLoading}
                 onPress={onSubmit}
               >
-                <Text style={styles.submitButtonText}>Submit</Text>
+                <Text style={styles.submitButtonText}>
+                  {submitLoading ? (
+                    <LoadingComponent />
+                  ) : submitBtn?.title ? (
+                    submitBtn?.title
+                  ) : (
+                    "Submit"
+                  )}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -356,32 +247,46 @@ const SubFormStepsHandler = ({
               isStepMode={true}
               onFieldChange={onFieldChange}
             />
-
             <View style={styles.buttonContainer}>
               {activeStep > 0 && (
                 <TouchableOpacity
-                  style={styles.backButtonTouchable}
+                  style={[
+                    styles.backButtonTouchable,
+                    {
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.border,
+                    },
+                  ]}
                   onPress={handleBack}
+                  disabled={submitLoading}
                 >
-                  <Text style={styles.backButtonText}>Back</Text>
+                  <Text
+                    style={[
+                      styles.backButtonText,
+                      { color: theme.colors.text },
+                    ]}
+                  >
+                    Back
+                  </Text>
                 </TouchableOpacity>
               )}
-
               <TouchableOpacity
                 style={[
                   styles.nextButtonTouchable,
+                  { backgroundColor: theme.colors.primary },
                   activeStep === 0 ? styles.fullWidthButton : {},
                 ]}
+                disabled={submitLoading}
                 onPress={() => {
+                  console.log({ isLastStep, hasPreview });
                   if (isLastStep && !hasPreview) {
-                    // If it's the last step and there's no preview, just submit without validation
                     onSubmit();
                   } else {
-                    // Otherwise, validate and continue to the next step
                     if (activeSchema) {
                       try {
                         const formValues = form.getValues();
                         const result = activeSchema.safeParse(formValues);
+                        console.log({ activeSchema, error: result.error });
                         if (result.success) {
                           handleNext();
                         } else {
@@ -391,8 +296,15 @@ const SubFormStepsHandler = ({
                               message: issue.message,
                             });
                           });
+                          if (result.error.issues.length > 0) {
+                            const firstIssue = result.error.issues[0];
+                            const errorMessage =
+                              firstIssue.message || "Validation error";
+                            showToast(errorMessage, "error");
+                          }
                         }
                       } catch (error) {
+                        console.error("Schema validation error:", error);
                         handleNext();
                       }
                     } else {
@@ -402,7 +314,17 @@ const SubFormStepsHandler = ({
                 }}
               >
                 <Text style={styles.nextButtonText}>
-                  {isLastStep && !hasPreview ? "Submit" : "Next"}
+                  {isLastStep && !hasPreview ? (
+                    submitLoading ? (
+                      <LoadingComponent />
+                    ) : submitBtn?.title ? (
+                      submitBtn?.title
+                    ) : (
+                      "Submit"
+                    )
+                  ) : (
+                    "Next"
+                  )}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -412,5 +334,154 @@ const SubFormStepsHandler = ({
     </ScrollView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  contentContainer: {
+    paddingBottom: 20,
+  },
+  headerContainer: {
+    flexDirection: "column",
+    alignItems: "center",
+    marginTop: 10,
+    marginBottom: 8,
+    position: "relative",
+    paddingHorizontal: 16,
+    width: "100%",
+  },
+  currentStepTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    textAlign: "center",
+    marginTop: 50,
+  },
+  skipButton: {
+    position: "absolute",
+    right: 16,
+    top: 0,
+    padding: 8,
+    zIndex: 5,
+  },
+  skipButtonText: {
+    fontWeight: "600",
+    fontSize: 16,
+  },
+  stepperContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 5,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  stepNamesContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    marginBottom: 25,
+    justifyContent: "space-between",
+  },
+  stepName: {
+    fontSize: 14,
+    textAlign: "center",
+    flex: 1,
+    display: "none",
+  },
+  activeStepName: {
+    fontWeight: "bold",
+  },
+  inactiveStepName: {},
+  stepItem: {
+    alignItems: "center",
+    flexDirection: "row",
+    zIndex: 1,
+  },
+  stepIndicator: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 2,
+  },
+  activeStep: {},
+  completedStep: {},
+  inactiveStep: {},
+  stepNumber: {
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+  activeStepNumber: {
+    color: "white",
+  },
+  inactiveStepNumber: {},
+  connector: {
+    height: 2,
+    width: 30,
+    zIndex: 1,
+  },
+  activeConnector: {},
+  inactiveConnector: {},
+  contentArea: {
+    flex: 1,
+    padding: 16,
+  },
+  stepContent: {
+    flex: 1,
+  },
+  previewContainer: {
+    flex: 1,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 20,
+    paddingHorizontal: 8,
+  },
+  backButtonTouchable: {
+    height: 50,
+    flex: 1,
+    marginRight: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 5,
+    borderWidth: 1,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  nextButtonTouchable: {
+    height: 50,
+    flex: 1,
+    marginLeft: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 5,
+  },
+  submitButtonTouchable: {
+    height: 50,
+    flex: 1,
+    marginLeft: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 5,
+  },
+  nextButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  submitButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  fullWidthButton: {
+    marginLeft: 0,
+    flex: 1,
+  },
+});
 
 export default SubFormStepsHandler;
