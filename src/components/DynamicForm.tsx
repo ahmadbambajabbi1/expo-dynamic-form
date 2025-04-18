@@ -119,7 +119,6 @@ const DynamicFormContent = ({
   });
 
   async function onSubmit(values: z.infer<any>) {
-    console.log({ values });
     let data: any = {};
     if (apiOptions?.extraData) {
       data = {
