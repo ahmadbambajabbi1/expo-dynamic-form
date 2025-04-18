@@ -314,7 +314,17 @@ const StepsHandler = ({
                 }}
               >
                 <Text style={styles.nextButtonText}>
-                  {isLastStep && !hasPreview ? "Submit" : "Next"}
+                  {isLastStep && !hasPreview ? (
+                    submitLoading ? (
+                      <LoadingComponent />
+                    ) : submitBtn?.title ? (
+                      submitBtn?.title
+                    ) : (
+                      "Submit"
+                    )
+                  ) : (
+                    "Next"
+                  )}
                 </Text>
               </TouchableOpacity>
             </View>
