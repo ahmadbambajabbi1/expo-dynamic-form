@@ -28,6 +28,7 @@ type PropsType = {
 
 type ImageType = {
   uri: string;
+  base64?: string; // Added for base64 data
   name?: string;
   type?: string;
   size?: number;
@@ -40,6 +41,64 @@ const ImageGalleryController = ({ controller, field, form }: PropsType) => {
 
   // Maximum number of images (default to 5 or use the controller's maximum)
   const maxImages = controller.maximun || 5;
+
+  // Convert local URI to base64
+  const convertToBase64 = async (uri: string): Promise<string> => {
+    try {
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      // Determine the MIME type based on file extension or default to jpeg
+      const fileExtension = uri.split(".").pop()?.toLowerCase();
+      let mimeType = "image/jpeg";
+
+      if (fileExtension === "png") {
+        mimeType = "image/png";
+      } else if (fileExtension === "gif") {
+        mimeType = "image/gif";
+      } else if (fileExtension === "webp") {
+        mimeType = "image/webp";
+      }
+
+      return `data:${mimeType};base64,${base64}`;
+    } catch (error) {
+      console.error("Error converting to base64:", error);
+      throw error;
+    }
+  };
+
+  // Process images to include base64 data
+  const processImagesWithBase64 = async (
+    imageList: ImageType[]
+  ): Promise<ImageType[]> => {
+    const processedImages = await Promise.all(
+      imageList.map(async (img) => {
+        // If image already has base64 or is a URL, keep it as is
+        if (
+          img.base64 ||
+          img.uri.startsWith("data:") ||
+          img.uri.startsWith("http")
+        ) {
+          return img;
+        }
+
+        // Convert local URI to base64
+        try {
+          const base64Data = await convertToBase64(img.uri);
+          return {
+            ...img,
+            base64: base64Data,
+          };
+        } catch (error) {
+          console.error("Failed to convert image to base64:", error);
+          return img; // Return original if conversion fails
+        }
+      })
+    );
+
+    return processedImages;
+  };
 
   // Initialize from existing value
   useEffect(() => {
@@ -88,20 +147,35 @@ const ImageGalleryController = ({ controller, field, form }: PropsType) => {
 
   // Update the form when images change
   useEffect(() => {
-    if (controller.returnFullImageObject) {
-      // Return full image objects with metadata
-      field.onChange(images);
-      form.setValue(controller?.name || "", images, {
-        shouldValidate: true,
-      });
-    } else {
-      // Return just the URIs (default behavior)
-      const imageUris = images.map((img) => img.uri);
-      field.onChange(imageUris);
-      form.setValue(controller?.name || "", imageUris, {
-        shouldValidate: true,
-      });
-    }
+    const updateForm = async () => {
+      if (images.length === 0) {
+        field.onChange([]);
+        form.setValue(controller?.name || "", [], {
+          shouldValidate: true,
+        });
+        return;
+      }
+
+      // Process images to include base64 data
+      const processedImages = await processImagesWithBase64(images);
+
+      if (controller.returnFullImageObject) {
+        // Return full image objects with metadata including base64
+        field.onChange(processedImages);
+        form.setValue(controller?.name || "", processedImages, {
+          shouldValidate: true,
+        });
+      } else {
+        // Return base64 data URLs for backend upload (default behavior)
+        const imageData = processedImages.map((img) => img.base64 || img.uri);
+        field.onChange(imageData);
+        form.setValue(controller?.name || "", imageData, {
+          shouldValidate: true,
+        });
+      }
+    };
+
+    updateForm();
   }, [images]);
 
   const requestPermissions = async () => {
@@ -161,7 +235,7 @@ const ImageGalleryController = ({ controller, field, form }: PropsType) => {
               return null;
             }
 
-            // Create image object with metadata
+            // Create image object with metadata (base64 will be added when form updates)
             return {
               uri: asset.uri,
               name: asset.fileName || `image-${Date.now()}.jpg`,
